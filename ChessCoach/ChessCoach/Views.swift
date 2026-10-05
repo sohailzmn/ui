@@ -1177,113 +1177,310 @@ struct LearnView: View {
                     EmptyStateView(
                         icon: "brain.head.profile",
                         title: "Dein Training entsteht aus Reviews",
-                        message: "Analysiere zuerst eine Partie. Fehler und Blunder werden hier automatisch zu Übungen."
+                        message: "Analysiere zuerst eine Partie. Deine echten Ungenauigkeiten, Fehler, Misses und Blunder werden hier zu Übungen."
                     )
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
-                            learningHeader
+                            trainingHero
 
-                            ForEach(store.puzzles) { puzzle in
-                                PuzzleCardView(puzzle: puzzle)
+                            NavigationLink {
+                                MistakeTrainingView(gameID: nil)
+                            } label: {
+                                HStack(spacing: 13) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(Color.coachMint.opacity(0.13))
+                                        Image(systemName: "target")
+                                            .font(.title2.bold())
+                                            .foregroundStyle(Color.coachMint)
+                                    }
+                                    .frame(width: 54, height: 54)
+
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text("Learn from your mistakes")
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                        Text("Trainiere alle \(store.puzzles.count) Positionen aktiv auf dem Brett.")
+                                            .font(.caption)
+                                            .foregroundStyle(.white.opacity(0.50))
+                                    }
+
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(.white.opacity(0.28))
+                                }
+                                .padding(16)
+                                .coachPanel()
+                            }
+                            .buttonStyle(PressScaleButtonStyle())
+
+                            Text("Aus deinen Partien")
+                                .font(.headline)
+                                .padding(.top, 3)
+
+                            ForEach(store.puzzles.prefix(12)) { puzzle in
+                                NavigationLink {
+                                    MistakeTrainingView(gameID: puzzle.gameID)
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        Text(puzzle.grade.shortLabel)
+                                            .font(.headline.bold())
+                                            .foregroundStyle(puzzle.grade.tint)
+                                            .frame(width: 42, height: 42)
+                                            .background(puzzle.grade.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text("vs \(puzzle.opponent)")
+                                                .font(.subheadline.bold())
+                                                .foregroundStyle(.white)
+                                            Text("Zug \((puzzle.ply + 1) / 2) · \(puzzle.grade.rawValue)")
+                                                .font(.caption)
+                                                .foregroundStyle(.white.opacity(0.45))
+                                        }
+
+                                        Spacer()
+                                        Text("Trainieren")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(Color.coachMint)
+                                    }
+                                    .padding(14)
+                                    .coachPanel()
+                                }
+                                .buttonStyle(PressScaleButtonStyle())
                             }
                         }
-                        .padding(.horizontal, 18)
+                        .padding(.horizontal, 14)
                         .padding(.bottom, 36)
                     }
                 }
             }
             .navigationTitle("Lernen")
-            .toolbarBackground(Color.coachBackground.opacity(0.9), for: .navigationBar)
+            .toolbarBackground(Color.coachBackground.opacity(0.94), for: .navigationBar)
         }
     }
 
-    private var learningHeader: some View {
-        GlassCard {
-            HStack {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("\(store.puzzles.count) Positionen")
-                        .font(.title2.bold())
-                    Text("Alle stammen aus deinen eigenen kritischen Zügen.")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.52))
-                }
+    private var trainingHero: some View {
+        HStack(spacing: 14) {
+            Image("Coach")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
-                Spacer()
-
-                Image(systemName: "scope")
-                    .font(.system(size: 28))
-                    .foregroundStyle(Color.coachMint)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Deine Fehler. Dein Training.")
+                    .font(.title3.bold())
+                Text("Keine Zufallspuzzles – nur Positionen, die du selbst in echten Partien falsch gespielt hast.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.58))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(17)
+        .background(
+            LinearGradient(
+                colors: [Color.coachPanel2, Color.coachMint.opacity(0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+        )
     }
 }
 
-struct PuzzleCardView: View {
-    let puzzle: TrainingPuzzle
+struct MistakeTrainingView: View {
+    @EnvironmentObject private var store: AppStore
+    let gameID: String?
+
+    @State private var index = 0
+    @State private var selectedSquare: String?
+    @State private var solved = false
     @State private var revealed = false
+    @State private var feedback: String?
+
+    private var puzzles: [TrainingPuzzle] {
+        if let gameID {
+            return store.puzzles.filter { $0.gameID == gameID }
+        }
+        return store.puzzles
+    }
+
+    private var current: TrainingPuzzle? {
+        guard !puzzles.isEmpty else { return nil }
+        return puzzles[min(index, puzzles.count - 1)]
+    }
+
+    private var currentGame: ImportedGame? {
+        guard let current else { return nil }
+        return store.games.first(where: { $0.id == current.gameID })
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Label(puzzle.grade.rawValue, systemImage: puzzle.grade.symbol)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(puzzle.grade.tint)
+        ZStack {
+            ScreenBackground()
 
-                Spacer()
+            if let puzzle = current {
+                ScrollView {
+                    VStack(spacing: 14) {
+                        trainingCoach(puzzle)
 
-                Text("vs \(puzzle.opponent)")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.42))
-            }
+                        ChessBoardViewLite(
+                            fen: puzzle.fen,
+                            whiteAtBottom: currentGame?.myColor == "white",
+                            highlightedMove: solved || revealed ? puzzle.playedMove : nil,
+                            suggestedMove: solved || revealed ? puzzle.bestMove : nil,
+                            selectedSquare: selectedSquare,
+                            onSquareTap: { square in
+                                tap(square, puzzle: puzzle)
+                            }
+                        )
+                        .padding(.horizontal, 1)
 
-            Text("Finde hier den besseren Zug.")
-                .font(.title3.bold())
+                        HStack {
+                            Text("\(index + 1) / \(puzzles.count)")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.white.opacity(0.42))
+                            Spacer()
+                            Text("Dein Zug: \(puzzle.playedMove)")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(puzzle.grade.tint)
+                        }
+                        .padding(.horizontal, 4)
 
-            ChessBoardViewLite(
-                fen: puzzle.fen,
-                whiteAtBottom: puzzle.whiteToMove,
-                highlightedMove: revealed ? puzzle.playedMove : nil,
-                suggestedMove: revealed ? puzzle.bestMove : nil
-            )
-            .padding(8)
-            .background(Color.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        if let feedback {
+                            Text(feedback)
+                                .font(.subheadline.bold())
+                                .foregroundStyle(solved ? Color.coachMint : Color.coachOrange)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(13)
+                                .background((solved ? Color.coachMint : Color.coachOrange).opacity(0.09), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
 
-            if revealed {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Bester Zug")
-                            .foregroundStyle(.white.opacity(0.5))
-                        Spacer()
-                        Text(puzzle.bestMove)
-                            .font(.headline.monospaced())
-                            .foregroundStyle(Color.coachMint)
+                        if solved || revealed {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Warum?")
+                                    .font(.headline)
+                                Text(puzzle.explanation)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white.opacity(0.64))
+                                    .lineSpacing(3)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(15)
+                            .coachPanel()
+                        }
+
+                        HStack(spacing: 9) {
+                            if !solved && !revealed {
+                                Button {
+                                    revealed = true
+                                    selectedSquare = nil
+                                    feedback = "Der bessere Zug ist \(puzzle.bestMove). Schau dir den Pfeil an und versuche die Idee zu verstehen."
+                                    Haptics.move()
+                                } label: {
+                                    Label("Lösung", systemImage: "lightbulb.fill")
+                                        .font(.subheadline.bold())
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 13)
+                                        .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                                }
+                                .buttonStyle(PressScaleButtonStyle())
+                            }
+
+                            if solved || revealed {
+                                Button {
+                                    nextPuzzle()
+                                } label: {
+                                    Label(index + 1 < puzzles.count ? "Nächste Position" : "Nochmal", systemImage: "arrow.right")
+                                        .font(.subheadline.bold())
+                                        .foregroundStyle(.black)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 13)
+                                        .background(Color.coachMint, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                                }
+                                .buttonStyle(PressScaleButtonStyle())
+                            }
+                        }
                     }
-
-                    Text(puzzle.explanation)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.58))
-                        .lineSpacing(3)
+                    .padding(.horizontal, 8)
+                    .padding(.top, 8)
+                    .padding(.bottom, 36)
                 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else {
+                EmptyStateView(icon: "checkmark.seal.fill", title: "Alles trainiert", message: "Für diese Partie gibt es keine kritischen Positionen.")
             }
-
-            Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
-                    revealed.toggle()
-                }
-            } label: {
-                Label(revealed ? "Lösung ausblenden" : "Lösung zeigen", systemImage: revealed ? "eye.slash.fill" : "eye.fill")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(revealed ? .white.opacity(0.66) : .black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(revealed ? Color.white.opacity(0.07) : Color.coachMint, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-            }
-            .buttonStyle(PressScaleButtonStyle())
         }
-        .padding(16)
+        .navigationTitle("Mistake Trainer")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color.coachBackground.opacity(0.95), for: .navigationBar)
+    }
+
+    private func trainingCoach(_ puzzle: TrainingPuzzle) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image("Coach")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 58, height: 58)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(puzzle.grade == .blunder ? "Hol dir diesen Zug zurück." : "Finde jetzt den besseren Zug.")
+                    .font(.headline)
+                Text("Tippe zuerst die Figur und dann das Zielfeld. Ich sage dir sofort, ob die Idee stimmt.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.62))
+                    .lineSpacing(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(15)
         .coachPanel()
+    }
+
+    private func tap(_ square: String, puzzle: TrainingPuzzle) {
+        guard !solved && !revealed else { return }
+
+        if selectedSquare == square {
+            selectedSquare = nil
+            feedback = nil
+            return
+        }
+
+        guard let from = selectedSquare else {
+            selectedSquare = square
+            feedback = "Jetzt das Zielfeld wählen."
+            return
+        }
+
+        let attempt = from + square
+        let target = String(puzzle.bestMove.prefix(4))
+        selectedSquare = nil
+
+        if attempt == target {
+            solved = true
+            feedback = "Genau. Das ist die Idee – \(puzzle.bestMove) war hier der Zug."
+            Haptics.success()
+        } else {
+            feedback = "Noch nicht. Prüfe zuerst Schach, Schlag und direkte Drohungen."
+            Haptics.error()
+        }
+    }
+
+    private func nextPuzzle() {
+        if index + 1 < puzzles.count {
+            index += 1
+        } else {
+            index = 0
+        }
+        selectedSquare = nil
+        solved = false
+        revealed = false
+        feedback = nil
+        Haptics.move()
     }
 }
 
