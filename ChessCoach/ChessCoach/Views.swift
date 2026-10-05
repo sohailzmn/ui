@@ -142,7 +142,7 @@ struct HomeView: View {
 
                     NavigationLink {
                         if let game = store.games.first {
-                            GameDetailView(gameID: game.id)
+                            ReviewExperienceView(gameID: game.id)
                         } else {
                             GamesView()
                         }
@@ -221,7 +221,7 @@ struct HomeView: View {
 
                 ForEach(store.games.prefix(3)) { game in
                     NavigationLink {
-                        GameDetailView(gameID: game.id)
+                        ReviewExperienceView(gameID: game.id)
                     } label: {
                         GameRowCard(game: game)
                     }
@@ -375,7 +375,7 @@ struct GamesView: View {
                             LazyVStack(spacing: 10) {
                                 ForEach(filteredGames) { game in
                                     NavigationLink {
-                                        GameDetailView(gameID: game.id)
+                                        ReviewExperienceView(gameID: game.id)
                                     } label: {
                                         GameRowCard(game: game)
                                     }
@@ -1252,7 +1252,7 @@ private func shortDate(_ date: Date) -> String {
     date.formatted(.dateTime.day().month(.abbreviated))
 }
 
-private extension View {
+extension View {
     func coachErrorAlert(store: AppStore) -> some View {
         alert(
             "Chess Coach",
