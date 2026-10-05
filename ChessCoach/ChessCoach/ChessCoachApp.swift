@@ -143,43 +143,33 @@ struct AnimatedKnightHero: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color.coachMint.opacity(0.36), Color.coachCyan.opacity(0.1), .clear],
+                        colors: [Color.coachMint.opacity(0.30), Color.coachCyan.opacity(0.08), .clear],
                         center: .center,
                         startRadius: 8,
-                        endRadius: 125
+                        endRadius: 128
                     )
                 )
-                .frame(width: 230, height: 230)
-                .scaleEffect(glowing ? 1.08 : 0.92)
+                .frame(width: 238, height: 238)
+                .scaleEffect(glowing ? 1.07 : 0.92)
 
-            RoundedRectangle(cornerRadius: 42, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.12), Color.white.opacity(0.025)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            Image("Coach")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 170, height: 170)
+                .clipShape(RoundedRectangle(cornerRadius: 45, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 42, style: .continuous)
-                        .stroke(Color.white.opacity(0.09), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 45, style: .continuous)
+                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
                 )
-                .frame(width: 154, height: 154)
-                .rotationEffect(.degrees(floating ? 4 : -4))
-
-            Text("♞")
-                .font(.system(size: 106, weight: .black, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(colors: [.white, Color.coachMint], startPoint: .top, endPoint: .bottom)
-                )
+                .shadow(color: Color.coachMint.opacity(0.22), radius: 24, y: 12)
                 .offset(y: floating ? -7 : 5)
-                .shadow(color: Color.coachMint.opacity(0.25), radius: 18, y: 12)
+                .rotationEffect(.degrees(floating ? 2.2 : -2.2))
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 2.8).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) {
                 floating = true
             }
-            withAnimation(.easeInOut(duration: 3.6).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 3.4).repeatForever(autoreverses: true)) {
                 glowing = true
             }
         }
