@@ -5,6 +5,8 @@ struct ChessBoardViewLite: View {
     var whiteAtBottom: Bool = true
     var highlightedMove: String? = nil
     var suggestedMove: String? = nil
+    var selectedSquare: String? = nil
+    var onSquareTap: ((String) -> Void)? = nil
 
     private var pieces: [String: Character] {
         BoardFENParser.pieces(from: fen)
@@ -33,10 +35,11 @@ struct ChessBoardViewLite: View {
                                 let fileIndex = Int(file.asciiValue ?? 97) - 97
                                 let isLight = (fileIndex + rank) % 2 == 1
                                 let highlighted = moveSquares.contains(square)
+                                let selected = selectedSquare == square
 
                                 ZStack {
                                     Rectangle()
-                                        .fill(squareColor(isLight: isLight, highlighted: highlighted))
+                                        .fill(squareColor(isLight: isLight, highlighted: highlighted, selected: selected))
 
                                     if let piece = pieces[square] {
                                         Image(pieceAssetName(for: piece))
@@ -61,6 +64,12 @@ struct ChessBoardViewLite: View {
                                     }
                                 }
                                 .frame(width: cell, height: cell)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    guard onSquareTap != nil else { return }
+                                    Haptics.move()
+                                    onSquareTap?(square)
+                                }
                             }
                         }
                     }
@@ -75,23 +84,26 @@ struct ChessBoardViewLite: View {
                 }
             }
             .frame(width: side, height: side)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
             )
             .animation(.spring(response: 0.38, dampingFraction: 0.84), value: fen)
         }
         .aspectRatio(1, contentMode: .fit)
     }
 
-    private func squareColor(isLight: Bool, highlighted: Bool) -> Color {
+    private func squareColor(isLight: Bool, highlighted: Bool, selected: Bool) -> Color {
+        if selected {
+            return Color.coachCyan.opacity(isLight ? 0.82 : 0.68)
+        }
         if highlighted {
-            return highlighted ? Color.coachMint.opacity(isLight ? 0.62 : 0.5) : .clear
+            return Color.coachMint.opacity(isLight ? 0.70 : 0.56)
         }
         return isLight
-            ? Color(red: 0.72, green: 0.77, blue: 0.73)
-            : Color(red: 0.20, green: 0.28, blue: 0.27)
+            ? Color(red: 0.78, green: 0.80, blue: 0.75)
+            : Color(red: 0.26, green: 0.34, blue: 0.31)
     }
 
     private func squares(from move: String?) -> Set<String> {
@@ -241,10 +253,10 @@ struct BoardWithEvaluation: View {
     let suggestedMove: String?
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 7) {
             if let evaluation {
                 EvaluationStrip(centipawns: evaluation)
-                    .frame(width: 19)
+                    .frame(width: 14)
             }
 
             ChessBoardViewLite(
