@@ -142,7 +142,7 @@ struct HomeView: View {
 
                     NavigationLink {
                         if let game = store.games.first {
-                            ReviewExperienceView(gameID: game.id)
+                            GameDetailView(gameID: game.id)
                         } else {
                             GamesView()
                         }
@@ -221,7 +221,7 @@ struct HomeView: View {
 
                 ForEach(store.games.prefix(3)) { game in
                     NavigationLink {
-                        ReviewExperienceView(gameID: game.id)
+                        GameDetailView(gameID: game.id)
                     } label: {
                         GameRowCard(game: game)
                     }
@@ -375,7 +375,7 @@ struct GamesView: View {
                             LazyVStack(spacing: 10) {
                                 ForEach(filteredGames) { game in
                                     NavigationLink {
-                                        ReviewExperienceView(gameID: game.id)
+                                        GameDetailView(gameID: game.id)
                                     } label: {
                                         GameRowCard(game: game)
                                     }
