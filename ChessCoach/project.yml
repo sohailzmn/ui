@@ -16,8 +16,6 @@ targets:
     platform: iOS
     sources:
       - path: ChessCoach
-    resources:
-      - path: ChessCoach/Resources
     dependencies:
       - package: SwiftChessTools
         product: ChessCore
