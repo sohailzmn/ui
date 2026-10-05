@@ -8,69 +8,31 @@ struct ChessBoardViewLite: View {
     var selectedSquare: String? = nil
     var onSquareTap: ((String) -> Void)? = nil
 
-    private var pieces: [String: Character] {
-        BoardFENParser.pieces(from: fen)
-    }
-
-    private var files: [Character] {
-        whiteAtBottom ? Array("abcdefgh") : Array("hgfedcba")
-    }
-
-    private var ranks: [Int] {
-        whiteAtBottom ? Array((1...8).reversed()) : Array(1...8)
-    }
+    private var pieces: [String: Character] { BoardFENParser.pieces(from: fen) }
+    private var moveSquares: Set<String> { squares(from: highlightedMove) }
 
     var body: some View {
         GeometryReader { geometry in
             let side = min(geometry.size.width, geometry.size.height)
             let cell = side / 8
-            let moveSquares = squares(from: highlightedMove)
 
             ZStack {
-                VStack(spacing: 0) {
-                    ForEach(ranks, id: \.self) { rank in
-                        HStack(spacing: 0) {
-                            ForEach(files, id: \.self) { file in
-                                let square = "\(file)\(rank)"
-                                let fileIndex = Int(file.asciiValue ?? 97) - 97
-                                let isLight = (fileIndex + rank) % 2 == 1
-                                let highlighted = moveSquares.contains(square)
-                                let selected = selectedSquare == square
-
-                                ZStack {
-                                    Rectangle()
-                                        .fill(squareColor(isLight: isLight, highlighted: highlighted, selected: selected))
-
-                                    if let piece = pieces[square] {
-                                        Image(pieceAssetName(for: piece))
-                                            .resizable()
-                                            .scaledToFit()
-                                            .padding(cell * 0.018)
-                                            .shadow(color: .black.opacity(0.24), radius: 1.4, y: 1.2)
-                                            .transition(.scale(scale: 0.82).combined(with: .opacity))
-                                    }
-
-                                    if file == files.first && rank == ranks.last {
-                                        VStack {
-                                            Spacer()
-                                            HStack {
-                                                Text(String(rank))
-                                                    .font(.system(size: max(8, cell * 0.15), weight: .bold))
-                                                    .foregroundStyle(Color.white.opacity(0.42))
-                                                    .padding(3)
-                                                Spacer()
-                                            }
-                                        }
-                                    }
-                                }
-                                .frame(width: cell, height: cell)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    guard onSquareTap != nil else { return }
-                                    Haptics.move()
-                                    onSquareTap?(square)
-                                }
-                            }
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(cell), spacing: 0), count: 8), spacing: 0) {
+                    ForEach(0..<64, id: \.self) { index in
+                        let square = squareName(at: index)
+                        let piece = pieces[square]
+                        BoardSquareCell(
+                            square: square,
+                            piece: piece,
+                            size: cell,
+                            isLight: isLightSquare(square),
+                            isHighlighted: moveSquares.contains(square),
+                            isSelected: selectedSquare == square,
+                            assetName: piece.map(pieceAssetName)
+                        ) {
+                            guard onSquareTap != nil else { return }
+                            Haptics.move()
+                            onSquareTap?(square)
                         }
                     }
                 }
@@ -84,7 +46,7 @@ struct ChessBoardViewLite: View {
                 }
             }
             .frame(width: side, height: side)
-             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(Color.white.opacity(0.12), lineWidth: 1)
@@ -94,16 +56,22 @@ struct ChessBoardViewLite: View {
         .aspectRatio(1, contentMode: .fit)
     }
 
-    private func squareColor(isLight: Bool, highlighted: Bool, selected: Bool) -> Color {
-        if selected {
-            return Color.coachCyan.opacity(isLight ? 0.82 : 0.68)
-        }
-        if highlighted {
-            return Color.coachMint.opacity(isLight ? 0.70 : 0.56)
-        }
-        return isLight
-            ? Color(red: 0.78, green: 0.80, blue: 0.75)
-            : Color(red: 0.26, green: 0.34, blue: 0.31)
+    private func squareName(at index: Int) -> String {
+        let displayRow = index / 8
+        let displayCol = index % 8
+        let fileIndex = whiteAtBottom ? displayCol : 7 - displayCol
+        let rank = whiteAtBottom ? 8 - displayRow : displayRow + 1
+        let files = Array("abcdefgh")
+        return "\(files[fileIndex])\(rank)"
+    }
+
+    private func isLightSquare(_ square: String) -> Bool {
+        let chars = Array(square)
+        guard chars.count == 2,
+              let fileASCII = chars[0].asciiValue,
+              let rank = chars[1].wholeNumberValue else { return false }
+        let file = Int(fileASCII) - 97
+        return (file + rank) % 2 == 1
     }
 
     private func squares(from move: String?) -> Set<String> {
@@ -128,6 +96,46 @@ struct ChessBoardViewLite: View {
         case "p": return "bP"
         default: return "wP"
         }
+    }
+}
+
+private struct BoardSquareCell: View {
+    let square: String
+    let piece: Character?
+    let size: CGFloat
+    let isLight: Bool
+    let isHighlighted: Bool
+    let isSelected: Bool
+    let assetName: String?
+    let onTap: () -> Void
+
+    var body: some View {
+        ZStack {
+            Rectangle().fill(backgroundColor)
+
+            if let assetName {
+                Image(assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(size * 0.018)
+                    .shadow(color: .black.opacity(0.24), radius: 1.4, y: 1.2)
+            }
+        }
+        .frame(width: size, height: size)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+    }
+
+    private var backgroundColor: Color {
+        if isSelected {
+            return Color.coachCyan.opacity(isLight ? 0.82 : 0.68)
+        }
+        if isHighlighted {
+            return Color.coachMint.opacity(isLight ? 0.70 : 0.56)
+        }
+        return isLight
+            ? Color(red: 0.78, green: 0.80, blue: 0.75)
+            : Color(red: 0.26, green: 0.34, blue: 0.31)
     }
 }
 
