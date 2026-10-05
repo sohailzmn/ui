@@ -215,7 +215,7 @@ private struct ProgressStageRow: View {
 
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(done ? .white : .white.opacity(0.55))
+                .foregroundStyle(done ? Color.white : Color.white.opacity(0.55))
 
             Spacer()
         }
@@ -243,7 +243,7 @@ private struct ReviewReportView: View {
                     grade: nil,
                     headline: reportHeadline,
                     explanation: review.lesson,
-                    tip: review.openingName.map { "Eröffnung: \($0)" } ?? "Jetzt gehen wir die Partie Zug für Zug durch."
+                    tip: "Eröffnung: \(openingDisplayName(from: game.pgn) ?? review.openingName ?? "nicht eindeutig erkannt"). Danach gehen wir die Partie Zug für Zug durch."
                 )
                 .padding(.top, 6)
 
@@ -251,7 +251,7 @@ private struct ReviewReportView: View {
 
                 PlayerScoreCard(game: game, review: review)
 
-                PhaseAccuracyCard(review: review)
+                PhaseAccuracyCard(game: game, review: review)
 
                 MoveBreakdownCard(game: game, review: review)
 
@@ -430,7 +430,7 @@ private struct EvaluationGraphCard: View {
 
                 Spacer()
 
-                Text(review.openingName ?? "Game Review")
+                Text(review.openingName ?? openingDisplayName(from: game.pgn) ?? "Game Review")
                     .font(.caption.bold())
                     .foregroundStyle(Color.coachMint)
                     .lineLimit(1)
@@ -502,6 +502,26 @@ private struct PlayerScoreCard: View {
     let game: ImportedGame
     let review: GameReview
 
+    private var myWhite: Bool { game.myColor == "white" }
+
+    private var opponentAccuracy: Double {
+        if let stored = review.opponentAccuracy { return stored }
+        let values = review.moves
+            .filter { ($0.ply % 2 == 1) != myWhite }
+            .map(\.derivedMoveAccuracy)
+        guard !values.isEmpty else { return 0 }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    private var opponentGameRating: Int? {
+        if let stored = review.opponentGameRating { return stored }
+        guard opponentAccuracy > 0 else { return nil }
+        let expected = min(91.0, max(56.0, 50.0 + Double(game.opponentRating) * 0.018))
+        let delta = Int(((opponentAccuracy - expected) * 21.0).rounded())
+        let adjustment = Int((Double(game.myRating - game.opponentRating) * 0.12).rounded())
+        return min(3200, max(100, game.opponentRating + delta + adjustment))
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             scoreColumn(
@@ -514,8 +534,8 @@ private struct PlayerScoreCard: View {
             scoreColumn(
                 name: game.opponent,
                 rating: game.opponentRating,
-                accuracy: review.opponentAccuracy ?? 0,
-                gameRating: review.opponentGameRating
+                accuracy: opponentAccuracy,
+                gameRating: opponentGameRating
             )
         }
     }
@@ -565,14 +585,29 @@ private struct PlayerScoreCard: View {
 }
 
 private struct PhaseAccuracyCard: View {
+    let game: ImportedGame
     let review: GameReview
+
+    private var myWhite: Bool { game.myColor == "white" }
 
     var body: some View {
         HStack(spacing: 8) {
-            phase("Eröffnung", review.openingAccuracy, "circle.grid.cross.fill")
-            phase("Mittelspiel", review.middlegameAccuracy, "square.stack.3d.up.fill")
-            phase("Endspiel", review.endgameAccuracy, "flag.checkered")
+            phase("Eröffnung", review.openingAccuracy ?? accuracy(for: "Eröffnung"), "circle.grid.cross.fill")
+            phase("Mittelspiel", review.middlegameAccuracy ?? accuracy(for: "Mittelspiel"), "square.stack.3d.up.fill")
+            phase("Endspiel", review.endgameAccuracy ?? accuracy(for: "Endspiel"), "flag.checkered")
         }
+    }
+
+    private func accuracy(for phaseName: String) -> Double? {
+        let values = review.moves
+            .filter { move in
+                let mine = (move.ply % 2 == 1) == myWhite
+                return mine && BoardMath.phaseName(for: move, totalPlies: review.moves.count) == phaseName
+            }
+            .map(\.derivedMoveAccuracy)
+
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
     }
 
     private func phase(_ title: String, _ value: Double?, _ icon: String) -> some View {
@@ -1115,4 +1150,30 @@ private struct InteractiveTrainingBoard: View {
         let prefix = piece.isUppercase ? "w" : "b"
         return prefix + String(piece).uppercased()
     }
+}
+
+
+private func openingDisplayName(from pgn: String) -> String? {
+    for name in ["Opening", "Variation"] {
+        let prefix = "[\(name) \""
+        if let start = pgn.range(of: prefix) {
+            let rest = pgn[start.upperBound...]
+            if let end = rest.firstIndex(of: "\"") {
+                let value = String(rest[..<end]).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !value.isEmpty { return value }
+            }
+        }
+    }
+
+    let prefix = "[ECOUrl \""
+    if let start = pgn.range(of: prefix) {
+        let rest = pgn[start.upperBound...]
+        if let end = rest.firstIndex(of: "\"") {
+            let url = String(rest[..<end])
+            if let last = url.split(separator: "/").last {
+                return String(last).replacingOccurrences(of: "-", with: " ").removingPercentEncoding
+            }
+        }
+    }
+    return nil
 }
