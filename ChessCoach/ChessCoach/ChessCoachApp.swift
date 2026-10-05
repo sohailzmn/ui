@@ -46,10 +46,15 @@ extension Color {
 extension ReviewGrade {
     var tint: Color {
         switch self {
+        case .brilliant: return Color(red: 0.20, green: 0.83, blue: 0.86)
+        case .great: return Color(red: 0.37, green: 0.73, blue: 0.98)
         case .best: return Color.coachMint
-        case .great: return Color.coachCyan
+        case .excellent: return Color(red: 0.55, green: 0.86, blue: 0.42)
+        case .good: return Color(red: 0.64, green: 0.73, blue: 0.48)
+        case .book: return Color(red: 0.66, green: 0.51, blue: 1.0)
         case .inaccuracy: return Color.coachOrange
         case .mistake: return Color(red: 1.0, green: 0.48, blue: 0.25)
+        case .miss: return Color(red: 0.95, green: 0.39, blue: 0.64)
         case .blunder: return Color.coachRed
         }
     }
