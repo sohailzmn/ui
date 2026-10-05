@@ -28,7 +28,7 @@ struct RootView: View {
             SettingsView()
                 .tabItem { Label("Setup", systemImage: "slider.horizontal.3") }
         }
-        .tint(.coachMint)
+        .tint(Color.coachMint)
     }
 }
 
@@ -46,11 +46,11 @@ extension Color {
 extension ReviewGrade {
     var tint: Color {
         switch self {
-        case .best: return .coachMint
-        case .great: return .coachCyan
-        case .inaccuracy: return .coachOrange
+        case .best: return Color.coachMint
+        case .great: return Color.coachCyan
+        case .inaccuracy: return Color.coachOrange
         case .mistake: return Color(red: 1.0, green: 0.48, blue: 0.25)
-        case .blunder: return .coachRed
+        case .blunder: return Color.coachRed
         }
     }
 }
@@ -97,13 +97,13 @@ struct PrimaryButtonLabel: View {
             .padding(.vertical, 15)
             .background(
                 LinearGradient(
-                    colors: [.coachMint, Color(red: 0.56, green: 1.0, blue: 0.82)],
+                    colors: [Color.coachMint, Color(red: 0.56, green: 1.0, blue: 0.82)],
                     startPoint: .leading,
                     endPoint: .trailing
                 ),
                 in: RoundedRectangle(cornerRadius: 18, style: .continuous)
             )
-            .shadow(color: .coachMint.opacity(0.2), radius: 20, y: 8)
+            .shadow(color: Color.coachMint.opacity(0.2), radius: 20, y: 8)
     }
 }
 
@@ -137,7 +137,7 @@ struct AnimatedKnightHero: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [.coachMint.opacity(0.36), .coachCyan.opacity(0.1), .clear],
+                        colors: [Color.coachMint.opacity(0.36), Color.coachCyan.opacity(0.1), .clear],
                         center: .center,
                         startRadius: 8,
                         endRadius: 125
@@ -164,10 +164,10 @@ struct AnimatedKnightHero: View {
             Text("♞")
                 .font(.system(size: 106, weight: .black, design: .rounded))
                 .foregroundStyle(
-                    LinearGradient(colors: [.white, .coachMint], startPoint: .top, endPoint: .bottom)
+                    LinearGradient(colors: [.white, Color.coachMint], startPoint: .top, endPoint: .bottom)
                 )
                 .offset(y: floating ? -7 : 5)
-                .shadow(color: .coachMint.opacity(0.25), radius: 18, y: 12)
+                .shadow(color: Color.coachMint.opacity(0.25), radius: 18, y: 12)
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 2.8).repeatForever(autoreverses: true)) {
