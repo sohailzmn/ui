@@ -10,18 +10,16 @@ SwiftChessTools / ChessCore
 License: MIT.
 Source: https://github.com/Trickfest/SwiftChessTools
 
-Spatial chess pieces
-Author: Maurizio Monge.
-License: MIT.
-Source: https://github.com/lichess-org/lila/tree/master/public/piece/spatial
+Chessnut chess pieces
+Author: Alexis Luengas.
+License: Apache License 2.0.
+Source: https://github.com/lichess-org/lila/tree/master/public/piece/chessnut
+Original project: https://github.com/LexLuengas/chessnut-pieces
 License reference: https://github.com/lichess-org/lila/blob/master/COPYING.md
 
-Coach avatar
-Generated with DiceBear Adventurer.
-Original Adventurer artwork: Lisa Wischofsky.
-License: Creative Commons Attribution 4.0.
-Source: https://www.dicebear.com/styles/adventurer/
-The avatar is used as the in-app fictional coach "Nox". No endorsement is implied.
+Coach Nox
+Original vector artwork created specifically for Chess Coach and stored in this repository.
+It does not use Chess.com or Chessigma coach artwork.
 
 Chess.com
 Chess.com is not affiliated with or endorsing this app. The app uses Chess.com's public read-only PubAPI to load publicly available player and game data. No Chess.com proprietary board artwork, sounds, coach artwork, or move-classification glyphs are included.
