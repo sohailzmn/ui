@@ -492,8 +492,8 @@ struct GameDetailView: View {
     @EnvironmentObject private var store: AppStore
     let gameID: String
 
-    @State private var selectedPly = 0
-    @State private var selectedReviewPly: Int?
+    @State private var mode: ReviewScreenMode = .report
+    @State private var reviewIndex = 0
 
     private var game: ImportedGame? {
         store.games.first(where: { $0.id == gameID })
@@ -504,47 +504,100 @@ struct GameDetailView: View {
             ScreenBackground()
 
             if let game {
-                ScrollView {
-                    VStack(spacing: 18) {
-                        gameHeader(game)
-                        boardSection(game)
-                        moveControls(game)
-
-                        if let review = game.review {
-                            reviewSummary(review)
-                            reviewTimeline(game: game, review: review)
-
-                            if let selected = selectedReview(game: game) {
-                                MoveReviewCard(review: selected)
-                            } else {
-                                Text("Tippe auf einen markierten Zug, um die Erklärung und den besseren Zug zu sehen.")
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.42))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 4)
+                if let review = game.review {
+                    switch mode {
+                    case .report:
+                        ReviewReportView(
+                            game: game,
+                            review: review,
+                            onStartReview: {
+                                reviewIndex = firstInterestingIndex(game: game, review: review)
+                                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                                    mode = .coach
+                                }
+                                Haptics.keyMoment(review.moves[reviewIndex].grade)
                             }
-                        } else {
-                            startReviewCard(game)
-                        }
-
-                        if store.reviewingGameID == game.id {
-                            ReviewProgressCard(progress: store.reviewProgress, status: store.reviewStatus)
-                        }
+                        )
+                    case .coach:
+                        CoachReviewView(
+                            game: game,
+                            review: review,
+                            selectedIndex: $reviewIndex,
+                            onShowReport: {
+                                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                                    mode = .report
+                                }
+                            }
+                        )
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 38)
+                } else {
+                    preReviewView(game)
                 }
             } else {
-                EmptyStateView(icon: "questionmark.square.dashed", title: "Partie nicht gefunden", message: "Synchronisiere deine Partien erneut.")
+                EmptyStateView(
+                    icon: "questionmark.square.dashed",
+                    title: "Partie nicht gefunden",
+                    message: "Synchronisiere deine Partien erneut."
+                )
             }
         }
-        .navigationTitle(game.map { "vs \($0.opponent)" } ?? "Review")
+        .navigationTitle(game.map { "vs \($0.opponent)" } ?? "Game Review")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.coachBackground.opacity(0.92), for: .navigationBar)
+        .toolbarBackground(Color.coachBackground.opacity(0.96), for: .navigationBar)
         .coachErrorAlert(store: store)
     }
 
-    private func gameHeader(_ game: ImportedGame) -> some View {
+    private func preReviewView(_ game: ImportedGame) -> some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                compactGameHeader(game)
+
+                ChessBoardViewLite(
+                    fen: game.fens.last ?? "",
+                    whiteAtBottom: game.myColor == "white",
+                    highlightedMove: game.uciMoves.last
+                )
+                .padding(.horizontal, 2)
+
+                if store.reviewingGameID == game.id {
+                    ReviewProgressCard(progress: store.reviewProgress, status: store.reviewStatus)
+                } else {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(spacing: 12) {
+                            Image("Coach")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 58, height: 58)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.coachMint.opacity(0.35), lineWidth: 1.5))
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Coach Nox")
+                                    .font(.headline)
+                                Text("Ich gehe erst durch die ganze Partie. Danach bekommst du deinen Report und wir schauen uns jeden Zug gemeinsam an.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white.opacity(0.62))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+
+                        Button {
+                            Task { await store.review(gameID: game.id) }
+                        } label: {
+                            PrimaryButtonLabel(title: "Game Review starten", systemImage: "sparkles")
+                        }
+                        .buttonStyle(PressScaleButtonStyle())
+                    }
+                    .padding(18)
+                    .coachPanel()
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.bottom, 36)
+        }
+    }
+
+    private func compactGameHeader(_ game: ImportedGame) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(game.result == "Win" ? "Gewonnen" : game.result == "Draw" ? "Remis" : "Verloren")
@@ -553,321 +606,523 @@ struct GameDetailView: View {
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.52))
             }
-
             Spacer()
-
             Text(game.myColor == "white" ? "♙" : "♟")
-                .font(.system(size: 38))
-                .frame(width: 54, height: 54)
-                .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                .font(.system(size: 36))
         }
+        .padding(.horizontal, 6)
         .padding(.top, 6)
     }
 
-    private func boardSection(_ game: ImportedGame) -> some View {
-        let safePly = min(max(selectedPly, 0), max(0, game.fens.count - 1))
-        let fen = game.fens.isEmpty ? "" : game.fens[safePly]
-        let move = safePly > 0 && safePly - 1 < game.uciMoves.count ? game.uciMoves[safePly - 1] : nil
-        let selectedReview = selectedReview(game: game)
-        let evaluation = selectedReview?.evaluationBefore ?? evaluationAtPosition(game: game, ply: safePly)
+    private func firstInterestingIndex(game: ImportedGame, review: GameReview) -> Int {
+        if let index = review.moves.firstIndex(where: { move in
+            let mine = (game.myColor == "white" && move.ply % 2 == 1) || (game.myColor == "black" && move.ply % 2 == 0)
+            return mine && (move.isKeyMoment ?? false)
+        }) {
+            return index
+        }
+        return 0
+    }
+}
 
-        return VStack(spacing: 10) {
-            BoardWithEvaluation(
-                fen: selectedReview?.fenBefore ?? fen,
-                whiteAtBottom: game.myColor == "white",
-                evaluation: evaluation,
-                highlightedMove: selectedReview == nil ? move : selectedReview?.move,
-                suggestedMove: selectedReview?.bestMove
-            )
-            .padding(12)
-            .coachPanel()
+private enum ReviewScreenMode {
+    case report
+    case coach
+}
 
+struct ReviewReportView: View {
+    let game: ImportedGame
+    let review: GameReview
+    let onStartReview: () -> Void
+
+    private var myMoves: [MoveReview] {
+        review.moves.filter {
+            (game.myColor == "white" && $0.ply % 2 == 1) || (game.myColor == "black" && $0.ply % 2 == 0)
+        }
+    }
+
+    private var trainableCount: Int {
+        myMoves.filter { [.inaccuracy, .mistake, .miss, .blunder].contains($0.grade) }.count
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                reportHero
+                EvaluationGraphCard(values: review.evaluationSeries ?? review.moves.map(\.evaluationAfter))
+                classificationCard
+                coachSummary
+
+                Button(action: onStartReview) {
+                    PrimaryButtonLabel(title: "Review Zug für Zug", systemImage: "play.fill")
+                }
+                .buttonStyle(PressScaleButtonStyle())
+
+                if trainableCount > 0 {
+                    NavigationLink {
+                        MistakeTrainingView(gameID: game.id)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "target")
+                                .font(.title3.bold())
+                                .foregroundStyle(Color.coachMint)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Learn from your mistakes")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                Text("\(trainableCount) Positionen aus genau dieser Partie trainieren")
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.50))
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.bold())
+                                .foregroundStyle(.white.opacity(0.28))
+                        }
+                        .padding(17)
+                        .coachPanel()
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
+            .padding(.bottom, 40)
+        }
+    }
+
+    private var reportHero: some View {
+        VStack(spacing: 18) {
             HStack {
-                Text("Position \(safePly) / \(game.uciMoves.count)")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.44))
-
-                Spacer()
-
-                if let evaluation {
-                    Text(evalText(evaluation))
-                        .font(.caption.monospacedDigit().bold())
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-            }
-            .padding(.horizontal, 5)
-        }
-    }
-
-    private func moveControls(_ game: ImportedGame) -> some View {
-        HStack(spacing: 10) {
-            Button {
-                selectedReviewPly = nil
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-                    selectedPly = max(0, selectedPly - 1)
-                }
-            } label: {
-                controlButton(systemName: "chevron.left")
-            }
-            .buttonStyle(PressScaleButtonStyle())
-
-            Button {
-                selectedReviewPly = nil
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-                    selectedPly = 0
-                }
-            } label: {
-                controlButton(systemName: "backward.end.fill")
-            }
-            .buttonStyle(PressScaleButtonStyle())
-
-            Spacer()
-
-            if selectedPly > 0 && selectedPly - 1 < game.uciMoves.count {
-                Text(game.uciMoves[selectedPly - 1])
-                    .font(.headline.monospaced())
-                    .foregroundStyle(Color.coachMint)
-            } else {
-                Text("Start")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.white.opacity(0.52))
-            }
-
-            Spacer()
-
-            Button {
-                selectedReviewPly = nil
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-                    selectedPly = min(game.uciMoves.count, selectedPly + 1)
-                }
-            } label: {
-                controlButton(systemName: "chevron.right")
-            }
-            .buttonStyle(PressScaleButtonStyle())
-        }
-    }
-
-    private func controlButton(systemName: String) -> some View {
-        Image(systemName: systemName)
-            .font(.headline)
-            .foregroundStyle(.white)
-            .frame(width: 46, height: 42)
-            .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private func startReviewCard(_ game: ImportedGame) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Coach Review")
-                        .font(.title3.bold())
-                    Text("Stockfish prüft jeden Zug lokal auf deinem Gerät.")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.54))
-                }
-                Spacer()
-                Image(systemName: "cpu.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color.coachMint)
-            }
-
-            Text("Du bekommst Bewertungsverlauf, bessere Züge, verständliche Hinweise und automatisch neue Trainingspositionen aus deinen Fehlern.")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.64))
-                .lineSpacing(3)
-
-            Button {
-                Task { await store.review(gameID: game.id) }
-            } label: {
-                PrimaryButtonLabel(title: "Kostenlosen Review starten", systemImage: "sparkles")
-            }
-            .buttonStyle(PressScaleButtonStyle())
-            .disabled(store.reviewingGameID != nil)
-        }
-        .padding(18)
-        .coachPanel()
-    }
-
-    private func reviewSummary(_ review: GameReview) -> some View {
-        VStack(alignment: .leading, spacing: 15) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Dein Review")
-                        .font(.headline)
-                    Text(review.lesson)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.54))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text("\(Int(review.accuracy.rounded()))")
-                        .font(.system(size: 34, weight: .black, design: .rounded))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("GAME REVIEW")
+                        .font(.caption.bold())
+                        .tracking(1.7)
                         .foregroundStyle(Color.coachMint)
-                    Text("Score")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.42))
+                    Text(reportHeadline)
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("gegen \(game.opponent) · \(game.timeClass.capitalized)")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.48))
                 }
+                Spacer()
+                Image("Coach")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 76, height: 76)
+                    .clipShape(RoundedRectangle(cornerRadius: 23, style: .continuous))
             }
 
-            HStack(spacing: 8) {
-                reviewCount("\(review.blunderCount)", "Blunder", Color.coachRed)
-                reviewCount("\(review.mistakeCount)", "Fehler", Color.coachOrange)
-                reviewCount("\(review.inaccuracyCount)", "Ungenau", Color.coachCyan)
+            HStack(spacing: 10) {
+                scoreTile(
+                    title: "Accuracy",
+                    value: "\(Int(review.accuracy.rounded()))%",
+                    subtitle: accuracyWord,
+                    tint: Color.coachMint
+                )
+                scoreTile(
+                    title: "Game Rating",
+                    value: "\(review.performanceRating ?? game.myRating)",
+                    subtitle: "Performance",
+                    tint: Color.coachCyan
+                )
             }
         }
-        .padding(18)
-        .coachPanel()
+        .padding(19)
+        .background(
+            LinearGradient(
+                colors: [Color.coachPanel2, Color(red: 0.075, green: 0.17, blue: 0.16)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Color.white.opacity(0.07), lineWidth: 1)
+        )
     }
 
-    private func reviewCount(_ value: String, _ title: String, _ color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(value)
-                .font(.headline.bold())
-                .foregroundStyle(color)
+    private func scoreTile(title: String, value: String, subtitle: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
             Text(title)
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.43))
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.48))
+            Text(value)
+                .font(.system(size: 31, weight: .black, design: .rounded))
+                .foregroundStyle(tint)
+            Text(subtitle)
+                .font(.caption2.bold())
+                .foregroundStyle(.white.opacity(0.42))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(11)
-        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .padding(14)
+        .background(Color.black.opacity(0.16), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
-    private func reviewTimeline(game: ImportedGame, review: GameReview) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Zug für Zug")
-                .font(.headline)
+    private var classificationCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Deine Züge")
+                    .font(.headline)
+                Spacer()
+                Text("\(myMoves.count) bewertet")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.42))
+            }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 7) {
-                    ForEach(review.moves) { move in
-                        Button {
-                            selectedReviewPly = move.ply
-                            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                                selectedPly = max(0, move.ply - 1)
-                            }
-                        } label: {
-                            VStack(spacing: 5) {
-                                Text(move.shortMoveNumber)
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(.white.opacity(0.45))
-
-                                Image(systemName: move.grade.symbol)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
+                ForEach(ReviewGrade.allCases, id: \.self) { grade in
+                    let count = myMoves.filter { $0.grade == grade }.count
+                    if count > 0 {
+                        HStack(spacing: 9) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    .fill(grade.tint.opacity(0.15))
+                                Text(grade.shortLabel)
                                     .font(.caption.bold())
-                                    .foregroundStyle(move.grade.tint)
-
-                                Text(move.move)
-                                    .font(.caption2.monospaced())
-                                    .foregroundStyle(.white.opacity(0.78))
-                                    .lineLimit(1)
+                                    .foregroundStyle(grade.tint)
                             }
-                            .frame(width: 58, height: 68)
-                            .background(
-                                (selectedReviewPly == move.ply ? move.grade.tint.opacity(0.18) : Color.white.opacity(0.045)),
-                                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(
-                                        selectedReviewPly == move.ply ? move.grade.tint.opacity(0.55) : Color.white.opacity(0.045),
-                                        lineWidth: 1
-                                    )
-                            )
+                            .frame(width: 34, height: 34)
+
+                            Text(grade.rawValue)
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.78))
+                            Spacer()
+                            Text("\(count)")
+                                .font(.headline.monospacedDigit())
+                                .foregroundStyle(.white)
                         }
-                        .buttonStyle(PressScaleButtonStyle())
+                        .padding(10)
+                        .background(Color.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 }
             }
         }
+        .padding(17)
+        .coachPanel()
     }
 
-    private func selectedReview(game: ImportedGame) -> MoveReview? {
-        guard let selectedReviewPly else { return nil }
-        return game.review?.moves.first(where: { $0.ply == selectedReviewPly })
+    private var coachSummary: some View {
+        HStack(alignment: .top, spacing: 13) {
+            Image("Coach")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 52, height: 52)
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Nox' Fazit")
+                    .font(.headline)
+                Text(review.lesson)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.66))
+                    .lineSpacing(3)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(17)
+        .coachPanel()
     }
 
-    private func evaluationAtPosition(game: ImportedGame, ply: Int) -> Int? {
-        guard let review = game.review else { return nil }
-        if ply == 0 { return review.moves.first?.evaluationBefore }
-        return review.moves.first(where: { $0.ply == ply })?.evaluationAfter
+    private var reportHeadline: String {
+        switch review.accuracy {
+        case 95...: return "Fast fehlerfrei gespielt."
+        case 88..<95: return "Starke Partie."
+        case 78..<88: return "Gut – mit klaren Lernmomenten."
+        case 65..<78: return "Da steckt viel Potenzial drin."
+        default: return "Diese Partie lohnt sich zu trainieren."
+        }
+    }
+
+    private var accuracyWord: String {
+        switch review.accuracy {
+        case 95...: return "Elite"
+        case 88..<95: return "Sehr stark"
+        case 78..<88: return "Stark"
+        case 65..<78: return "Solide"
+        default: return "Trainierbar"
+        }
+    }
+}
+
+struct EvaluationGraphCard: View {
+    let values: [Int]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Partieverlauf")
+                    .font(.headline)
+                Spacer()
+                Text("Stockfish")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white.opacity(0.38))
+            }
+
+            Canvas { context, size in
+                guard values.count > 1 else { return }
+                let clamped = values.map { max(-900, min(900, $0)) }
+                let midY = size.height / 2
+
+                var zero = Path()
+                zero.move(to: CGPoint(x: 0, y: midY))
+                zero.addLine(to: CGPoint(x: size.width, y: midY))
+                context.stroke(zero, with: .color(.white.opacity(0.12)), lineWidth: 1)
+
+                var path = Path()
+                for (index, value) in clamped.enumerated() {
+                    let x = CGFloat(index) / CGFloat(max(clamped.count - 1, 1)) * size.width
+                    let normalized = CGFloat(value) / 900
+                    let y = midY - normalized * (size.height * 0.43)
+                    if index == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                    else { path.addLine(to: CGPoint(x: x, y: y)) }
+                }
+                context.stroke(path, with: .linearGradient(
+                    Gradient(colors: [Color.coachCyan, Color.coachMint]),
+                    startPoint: .zero,
+                    endPoint: CGPoint(x: size.width, y: 0)
+                ), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            }
+            .frame(height: 118)
+            .background(Color.black.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            HStack {
+                Label("Schwarz besser", systemImage: "circle.fill")
+                Spacer()
+                Label("Weiß besser", systemImage: "circle.fill")
+            }
+            .font(.caption2)
+            .foregroundStyle(.white.opacity(0.36))
+        }
+        .padding(17)
+        .coachPanel()
+    }
+}
+
+struct CoachReviewView: View {
+    let game: ImportedGame
+    let review: GameReview
+    @Binding var selectedIndex: Int
+    let onShowReport: () -> Void
+
+    @State private var showBest = false
+
+    private var current: MoveReview {
+        review.moves[min(max(selectedIndex, 0), max(review.moves.count - 1, 0))]
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                CoachMessageCard(move: current)
+
+                BoardWithEvaluation(
+                    fen: showBest ? current.fenBefore : current.fenAfter,
+                    whiteAtBottom: game.myColor == "white",
+                    evaluation: showBest ? current.evaluationBefore : current.evaluationAfter,
+                    highlightedMove: showBest ? nil : current.move,
+                    suggestedMove: showBest ? current.bestMove : nil
+                )
+                .padding(.horizontal, 1)
+
+                HStack {
+                    Text("\(current.moveNumberText) \(current.move)")
+                        .font(.headline.monospaced())
+                    Spacer()
+                    Text(evalText(current.evaluationAfter))
+                        .font(.caption.monospacedDigit().bold())
+                        .foregroundStyle(.white.opacity(0.56))
+                }
+                .padding(.horizontal, 4)
+
+                HStack(spacing: 8) {
+                    Button {
+                        showBest.toggle()
+                        Haptics.move()
+                    } label: {
+                        Label(showBest ? "Gespielten Zug" : "Besten Zug", systemImage: showBest ? "arrow.uturn.backward" : "lightbulb.fill")
+                            .font(.subheadline.bold())
+                            .foregroundStyle(showBest ? .white : .black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(showBest ? Color.white.opacity(0.07) : Color.coachMint, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+
+                    Button(action: onShowReport) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(width: 48, height: 44)
+                            .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+                }
+
+                if showBest && !current.principalVariation.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("SO GEHT DIE IDEE WEITER")
+                            .font(.caption2.bold())
+                            .tracking(1.1)
+                            .foregroundStyle(.white.opacity(0.38))
+                        Text(current.principalVariation.joined(separator: "  "))
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.white.opacity(0.68))
+                            .lineLimit(3)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(13)
+                    .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                reviewControls
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(review.moves.enumerated()), id: \.element.id) { index, move in
+                            Button {
+                                selectedIndex = index
+                                showBest = false
+                                Haptics.keyMoment(move.grade)
+                            } label: {
+                                VStack(spacing: 3) {
+                                    Text(move.moveNumberText.replacingOccurrences(of: "...", with: "…"))
+                                        .font(.caption2.monospacedDigit())
+                                        .foregroundStyle(.white.opacity(0.34))
+                                    Text(move.grade.shortLabel)
+                                        .font(.caption.bold())
+                                        .foregroundStyle(move.grade.tint)
+                                    Text(move.move)
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.white.opacity(0.72))
+                                }
+                                .frame(width: 55, height: 61)
+                                .background(
+                                    selectedIndex == index ? move.grade.tint.opacity(0.15) : Color.white.opacity(0.03),
+                                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                )
+                            }
+                            .buttonStyle(PressScaleButtonStyle())
+                        }
+                    }
+                }
+
+                if review.criticalCount > 0 {
+                    NavigationLink {
+                        MistakeTrainingView(gameID: game.id)
+                    } label: {
+                        Label("Learn from your mistakes", systemImage: "target")
+                            .font(.headline)
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.coachMint, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 36)
+        }
+        .onChange(of: selectedIndex) { _, newValue in
+            showBest = false
+            if review.moves.indices.contains(newValue) {
+                Haptics.keyMoment(review.moves[newValue].grade)
+            }
+        }
+    }
+
+    private var reviewControls: some View {
+        HStack(spacing: 10) {
+            Button {
+                selectedIndex = max(0, selectedIndex - 1)
+            } label: {
+                Label("Zurück", systemImage: "chevron.left")
+                    .frame(maxWidth: .infinity)
+            }
+            .disabled(selectedIndex == 0)
+
+            Button {
+                selectedIndex = min(review.moves.count - 1, selectedIndex + 1)
+            } label: {
+                Label("Weiter", systemImage: "chevron.right")
+                    .labelStyle(.titleAndIcon)
+                    .frame(maxWidth: .infinity)
+            }
+            .disabled(selectedIndex >= review.moves.count - 1)
+        }
+        .font(.subheadline.bold())
+        .foregroundStyle(.white)
+        .padding(.vertical, 11)
+        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .buttonStyle(PressScaleButtonStyle())
     }
 
     private func evalText(_ cp: Int) -> String {
-        if cp > 90_000 { return "M Weiß" }
-        if cp < -90_000 { return "M Schwarz" }
+        if cp > 90_000 { return "Mate · Weiß" }
+        if cp < -90_000 { return "Mate · Schwarz" }
         return String(format: "%+.2f", Double(cp) / 100.0)
     }
 }
 
-private extension MoveReview {
-    var shortMoveNumber: String {
-        let number = (ply + 1) / 2
-        return ply % 2 == 1 ? "\(number)." : "\(number)…"
-    }
-}
-
-struct MoveReviewCard: View {
-    let review: MoveReview
+struct CoachMessageCard: View {
+    let move: MoveReview
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Label(review.grade.rawValue, systemImage: review.grade.symbol)
-                    .font(.headline)
-                    .foregroundStyle(review.grade.tint)
+        HStack(alignment: .top, spacing: 12) {
+            Image("Coach")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 62, height: 62)
+                .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 19, style: .continuous)
+                        .stroke(move.grade.tint.opacity(0.36), lineWidth: 1.5)
+                )
 
-                Spacer()
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 7) {
+                    Text(move.grade.shortLabel)
+                        .font(.caption.bold())
+                        .foregroundStyle(move.grade.tint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(move.grade.tint.opacity(0.13), in: Capsule())
 
-                Text(review.move)
-                    .font(.headline.monospaced())
-                    .foregroundStyle(.white)
-            }
-
-            Text(review.explanation)
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.68))
-                .lineSpacing(4)
-
-            Divider()
-                .overlay(Color.white.opacity(0.08))
-
-            HStack(spacing: 12) {
-                moveChip(title: "Gespielt", move: review.move, color: .white)
-                moveChip(title: "Besser", move: review.bestMove.isEmpty ? "—" : review.bestMove, color: Color.coachMint)
-            }
-
-            if !review.principalVariation.isEmpty {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("ENGINE-IDEE")
-                        .font(.caption2.bold())
-                        .tracking(1.2)
-                        .foregroundStyle(.white.opacity(0.38))
-                    Text(review.principalVariation.joined(separator: "  "))
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.white.opacity(0.58))
-                        .lineLimit(2)
+                    Text(move.grade.rawValue)
+                        .font(.caption.bold())
+                        .foregroundStyle(move.grade.tint)
                 }
-            }
-        }
-        .padding(18)
-        .coachPanel()
-    }
 
-    private func moveChip(title: String, move: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.38))
-            Text(move)
-                .font(.headline.monospaced())
-                .foregroundStyle(color)
+                Text(move.simpleTitle)
+                    .font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(move.explanation)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.68))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .padding(15)
+        .background(
+            LinearGradient(
+                colors: [move.grade.tint.opacity(0.11), Color.coachPanel.opacity(0.94)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(move.grade.tint.opacity(0.13), lineWidth: 1)
+        )
     }
 }
 
