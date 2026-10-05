@@ -982,7 +982,8 @@ struct CoachReviewView: View {
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
-                        ForEach(Array(review.moves.enumerated()), id: \.element.id) { index, move in
+                        ForEach(review.moves.indices, id: \.self) { index in
+                            let move = review.moves[index]
                             Button {
                                 selectedIndex = index
                                 showBest = false
