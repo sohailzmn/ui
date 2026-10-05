@@ -16,6 +16,7 @@ struct ImportedGame: Identifiable, Codable {
     var review: GameReview?
 
     var moveCount: Int { uciMoves.count }
+
     var resultSymbol: String {
         switch result {
         case "Win": return "checkmark.circle.fill"
@@ -32,13 +33,62 @@ struct GameReview: Codable {
     let moves: [MoveReview]
     let lesson: String
 
-    var blunderCount: Int { moves.filter { $0.grade == .blunder }.count }
-    var mistakeCount: Int { moves.filter { $0.grade == .mistake }.count }
-    var inaccuracyCount: Int { moves.filter { $0.grade == .inaccuracy }.count }
+    let opponentAccuracy: Double?
+    let gameRating: Int?
+    let opponentGameRating: Int?
+    let openingName: String?
+    let openingAccuracy: Double?
+    let middlegameAccuracy: Double?
+    let endgameAccuracy: Double?
+    let analysisVersion: Int?
+
+    init(
+        createdAt: Date,
+        accuracy: Double,
+        averageCentipawnLoss: Int,
+        moves: [MoveReview],
+        lesson: String,
+        opponentAccuracy: Double? = nil,
+        gameRating: Int? = nil,
+        opponentGameRating: Int? = nil,
+        openingName: String? = nil,
+        openingAccuracy: Double? = nil,
+        middlegameAccuracy: Double? = nil,
+        endgameAccuracy: Double? = nil,
+        analysisVersion: Int? = nil
+    ) {
+        self.createdAt = createdAt
+        self.accuracy = accuracy
+        self.averageCentipawnLoss = averageCentipawnLoss
+        self.moves = moves
+        self.lesson = lesson
+        self.opponentAccuracy = opponentAccuracy
+        self.gameRating = gameRating
+        self.opponentGameRating = opponentGameRating
+        self.openingName = openingName
+        self.openingAccuracy = openingAccuracy
+        self.middlegameAccuracy = middlegameAccuracy
+        self.endgameAccuracy = endgameAccuracy
+        self.analysisVersion = analysisVersion
+    }
+
+    var isModernReview: Bool { analysisVersion == 2 }
+
+    func count(_ grade: ReviewGrade, forWhite: Bool? = nil) -> Int {
+        moves.filter { move in
+            let colorMatches = forWhite.map { $0 == (move.ply % 2 == 1) } ?? true
+            return colorMatches && move.grade == grade
+        }.count
+    }
+
+    var blunderCount: Int { count(.blunder) }
+    var mistakeCount: Int { count(.mistake) }
+    var inaccuracyCount: Int { count(.inaccuracy) }
 }
 
 struct MoveReview: Identifiable, Codable {
     var id: Int { ply }
+
     let ply: Int
     let move: String
     let bestMove: String
@@ -51,6 +101,48 @@ struct MoveReview: Identifiable, Codable {
     let fenAfter: String
     let principalVariation: [String]
 
+    let expectedPointLoss: Double?
+    let moveAccuracy: Double?
+    let headline: String?
+    let coachTip: String?
+    let secondBestMove: String?
+
+    init(
+        ply: Int,
+        move: String,
+        bestMove: String,
+        evaluationBefore: Int,
+        evaluationAfter: Int,
+        centipawnLoss: Int,
+        grade: ReviewGrade,
+        explanation: String,
+        fenBefore: String,
+        fenAfter: String,
+        principalVariation: [String],
+        expectedPointLoss: Double? = nil,
+        moveAccuracy: Double? = nil,
+        headline: String? = nil,
+        coachTip: String? = nil,
+        secondBestMove: String? = nil
+    ) {
+        self.ply = ply
+        self.move = move
+        self.bestMove = bestMove
+        self.evaluationBefore = evaluationBefore
+        self.evaluationAfter = evaluationAfter
+        self.centipawnLoss = centipawnLoss
+        self.grade = grade
+        self.explanation = explanation
+        self.fenBefore = fenBefore
+        self.fenAfter = fenAfter
+        self.principalVariation = principalVariation
+        self.expectedPointLoss = expectedPointLoss
+        self.moveAccuracy = moveAccuracy
+        self.headline = headline
+        self.coachTip = coachTip
+        self.secondBestMove = secondBestMove
+    }
+
     var moveNumberText: String {
         let number = (ply + 1) / 2
         return ply % 2 == 1 ? "\(number)." : "\(number)..."
@@ -58,29 +150,62 @@ struct MoveReview: Identifiable, Codable {
 }
 
 enum ReviewGrade: String, Codable, CaseIterable {
-    case best = "Best"
+    case brilliant = "Brilliant"
     case great = "Great"
+    case best = "Best"
+    case excellent = "Excellent"
+    case good = "Good"
+    case book = "Book"
     case inaccuracy = "Inaccuracy"
     case mistake = "Mistake"
+    case miss = "Miss"
     case blunder = "Blunder"
 
     var symbol: String {
         switch self {
-        case .best: return "sparkles"
-        case .great: return "hand.thumbsup.fill"
-        case .inaccuracy: return "exclamationmark.circle.fill"
+        case .brilliant: return "diamond.fill"
+        case .great: return "exclamationmark.circle.fill"
+        case .best: return "star.fill"
+        case .excellent: return "checkmark.seal.fill"
+        case .good: return "checkmark.circle.fill"
+        case .book: return "book.closed.fill"
+        case .inaccuracy: return "questionmark.circle.fill"
         case .mistake: return "exclamationmark.triangle.fill"
-        case .blunder: return "bolt.trianglebadge.exclamationmark.fill"
+        case .miss: return "scope"
+        case .blunder: return "xmark.octagon.fill"
         }
     }
 
     var shortLabel: String {
         switch self {
-        case .best: return "Best"
-        case .great: return "Good"
+        case .brilliant: return "!!"
+        case .great: return "!"
+        case .best: return "★"
+        case .excellent: return "✓+"
+        case .good: return "✓"
+        case .book: return "Book"
         case .inaccuracy: return "?!"
         case .mistake: return "?"
+        case .miss: return "Miss"
         case .blunder: return "??"
+        }
+    }
+
+    var isCritical: Bool {
+        switch self {
+        case .brilliant, .great, .inaccuracy, .mistake, .miss, .blunder:
+            return true
+        case .best, .excellent, .good, .book:
+            return false
+        }
+    }
+
+    var isTrainingCandidate: Bool {
+        switch self {
+        case .inaccuracy, .mistake, .miss, .blunder:
+            return true
+        default:
+            return false
         }
     }
 }
@@ -110,6 +235,8 @@ struct EngineAnalysis {
     let evaluation: Int
     let bestMove: String
     let principalVariation: [String]
+    let secondBestEvaluation: Int?
+    let secondBestMove: String?
 }
 
 enum ChessCoachError: LocalizedError {
