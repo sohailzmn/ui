@@ -183,7 +183,7 @@ struct MoveReview: Identifiable, Codable {
     }
 }
 
-enum ReviewGrade: String, Codable, CaseIterable {
+enum ReviewGrade: String, Codable, CaseIterable, Hashable {
     case brilliant = "Brilliant"
     case great = "Great"
     case best = "Best"
