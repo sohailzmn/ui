@@ -129,7 +129,7 @@ struct HomeView: View {
                     Text("TODAY'S MOVE")
                         .font(.caption.bold())
                         .tracking(1.7)
-                        .foregroundStyle(.coachMint)
+                        .foregroundStyle(Color.coachMint)
 
                     Text(trainingHeadline)
                         .font(.system(size: 25, weight: .bold, design: .rounded))
@@ -149,7 +149,7 @@ struct HomeView: View {
                     } label: {
                         Label(store.games.first?.review == nil ? "Letzte Partie reviewen" : "Review öffnen", systemImage: "arrow.right")
                             .font(.subheadline.bold())
-                            .foregroundStyle(.coachMint)
+                            .foregroundStyle(Color.coachMint)
                     }
                     .buttonStyle(PressScaleButtonStyle())
                     .padding(.top, 3)
@@ -241,7 +241,7 @@ struct StatMiniCard: View {
         VStack(alignment: .leading, spacing: 9) {
             Image(systemName: icon)
                 .font(.caption.bold())
-                .foregroundStyle(.coachMint)
+                .foregroundStyle(Color.coachMint)
 
             Text(value)
                 .font(.title3.bold())
@@ -277,7 +277,7 @@ struct ConnectView: View {
 
                 Image(systemName: "person.crop.circle.badge.checkmark")
                     .font(.system(size: 56, weight: .light))
-                    .foregroundStyle(.coachMint)
+                    .foregroundStyle(Color.coachMint)
 
                 VStack(spacing: 8) {
                     Text("Dein Chess.com-Profil")
@@ -426,9 +426,9 @@ struct GameRowCard: View {
 
     private var resultColor: Color {
         switch game.result {
-        case "Win": return .coachMint
-        case "Draw": return .coachOrange
-        default: return .coachRed
+        case "Win": return Color.coachMint
+        case "Draw": return Color.coachOrange
+        default: return Color.coachRed
         }
     }
 
@@ -452,7 +452,7 @@ struct GameRowCard: View {
                     if game.review != nil {
                         Image(systemName: "sparkles")
                             .font(.caption)
-                            .foregroundStyle(.coachMint)
+                            .foregroundStyle(Color.coachMint)
                     }
                 }
 
@@ -626,7 +626,7 @@ struct GameDetailView: View {
             if selectedPly > 0 && selectedPly - 1 < game.uciMoves.count {
                 Text(game.uciMoves[selectedPly - 1])
                     .font(.headline.monospaced())
-                    .foregroundStyle(.coachMint)
+                    .foregroundStyle(Color.coachMint)
             } else {
                 Text("Start")
                     .font(.subheadline.bold())
@@ -668,7 +668,7 @@ struct GameDetailView: View {
                 Spacer()
                 Image(systemName: "cpu.fill")
                     .font(.title2)
-                    .foregroundStyle(.coachMint)
+                    .foregroundStyle(Color.coachMint)
             }
 
             Text("Du bekommst Bewertungsverlauf, bessere Züge, verständliche Hinweise und automatisch neue Trainingspositionen aus deinen Fehlern.")
@@ -705,7 +705,7 @@ struct GameDetailView: View {
                 VStack(alignment: .trailing, spacing: 1) {
                     Text("\(Int(review.accuracy.rounded()))")
                         .font(.system(size: 34, weight: .black, design: .rounded))
-                        .foregroundStyle(.coachMint)
+                        .foregroundStyle(Color.coachMint)
                     Text("Score")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.42))
@@ -713,9 +713,9 @@ struct GameDetailView: View {
             }
 
             HStack(spacing: 8) {
-                reviewCount("\(review.blunderCount)", "Blunder", .coachRed)
-                reviewCount("\(review.mistakeCount)", "Fehler", .coachOrange)
-                reviewCount("\(review.inaccuracyCount)", "Ungenau", .coachCyan)
+                reviewCount("\(review.blunderCount)", "Blunder", Color.coachRed)
+                reviewCount("\(review.mistakeCount)", "Fehler", Color.coachOrange)
+                reviewCount("\(review.inaccuracyCount)", "Ungenau", Color.coachCyan)
             }
         }
         .padding(18)
@@ -836,7 +836,7 @@ struct MoveReviewCard: View {
 
             HStack(spacing: 12) {
                 moveChip(title: "Gespielt", move: review.move, color: .white)
-                moveChip(title: "Besser", move: review.bestMove.isEmpty ? "—" : review.bestMove, color: .coachMint)
+                moveChip(title: "Besser", move: review.bestMove.isEmpty ? "—" : review.bestMove, color: Color.coachMint)
             }
 
             if !review.principalVariation.isEmpty {
@@ -884,7 +884,7 @@ struct ReviewProgressCard: View {
                 Circle()
                     .trim(from: 0, to: max(0.01, progress))
                     .stroke(
-                        LinearGradient(colors: [.coachMint, .coachCyan], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        LinearGradient(colors: [Color.coachMint, Color.coachCyan], startPoint: .topLeading, endPoint: .bottomTrailing),
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
@@ -958,7 +958,7 @@ struct LearnView: View {
 
                 Image(systemName: "scope")
                     .font(.system(size: 28))
-                    .foregroundStyle(.coachMint)
+                    .foregroundStyle(Color.coachMint)
             }
         }
     }
@@ -1002,7 +1002,7 @@ struct PuzzleCardView: View {
                         Spacer()
                         Text(puzzle.bestMove)
                             .font(.headline.monospaced())
-                            .foregroundStyle(.coachMint)
+                            .foregroundStyle(Color.coachMint)
                     }
 
                     Text(puzzle.explanation)
@@ -1061,7 +1061,7 @@ struct SettingsView: View {
                             } label: {
                                 Label("Account & lokale Daten entfernen", systemImage: "trash.fill")
                                     .font(.subheadline.bold())
-                                    .foregroundStyle(.coachRed)
+                                    .foregroundStyle(Color.coachRed)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(16)
                                     .coachPanel()
@@ -1110,7 +1110,7 @@ struct SettingsView: View {
                     showConnect = true
                 }
                 .font(.subheadline.bold())
-                .foregroundStyle(.coachMint)
+                .foregroundStyle(Color.coachMint)
             }
 
             if !store.username.isEmpty {
@@ -1136,7 +1136,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "cpu.fill")
-                    .foregroundStyle(.coachMint)
+                    .foregroundStyle(Color.coachMint)
                 Text("Lokale Analyse")
                     .font(.headline)
                 Spacer()
@@ -1161,7 +1161,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Privatsphäre", systemImage: "lock.fill")
                 .font(.headline)
-                .foregroundStyle(.coachCyan)
+                .foregroundStyle(Color.coachCyan)
 
             Text("Es wird kein Chess.com-Passwort gespeichert. Die App liest ausschließlich öffentliche Profildaten und öffentliche PGNs über die PubAPI. Reviews bleiben lokal auf deinem Gerät.")
                 .font(.subheadline)
@@ -1176,7 +1176,7 @@ struct SettingsView: View {
         HStack(spacing: 13) {
             Image(systemName: icon)
                 .frame(width: 32, height: 32)
-                .foregroundStyle(.coachMint)
+                .foregroundStyle(Color.coachMint)
                 .background(Color.coachMint.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             VStack(alignment: .leading, spacing: 3) {
@@ -1232,7 +1232,7 @@ struct EmptyStateView: View {
         VStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.system(size: 48, weight: .light))
-                .foregroundStyle(.coachMint)
+                .foregroundStyle(Color.coachMint)
 
             Text(title)
                 .font(.title3.bold())
