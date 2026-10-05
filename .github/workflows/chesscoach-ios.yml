@@ -1,0 +1,102 @@
+name: Build ChessCoach IPA
+
+on:
+  push:
+    branches:
+      - chesscoach-ios
+    paths:
+      - 'ChessCoach/.buildtrigger'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'ChessCoach/**'
+      - '.github/workflows/chesscoach-ios.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Download verified Stockfish network
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ChessCoach/ChessCoach/Resources
+          curl --proto '=https' --tlsv1.2 --location --fail --show-error \
+            https://tests.stockfishchess.org/api/nn/nn-134a887f4c8f.nnue \
+            --output ChessCoach/ChessCoach/Resources/nn-134a887f4c8f.nnue
+          echo "134a887f4c8ff7bf7284177a3b3fc6ff9cef95ba89eb8db3079a8e507f7126af  ChessCoach/ChessCoach/Resources/nn-134a887f4c8f.nnue" | shasum -a 256 -c -
+
+      - name: Generate app icon
+        run: |
+          swift ChessCoach/Scripts/make_icon.swift \
+            ChessCoach/ChessCoach/Assets.xcassets/AppIcon.appiconset/Icon.png
+
+      - name: Generate Xcode project
+        working-directory: ChessCoach
+        run: xcodegen generate
+
+      - name: Resolve Swift packages
+        working-directory: ChessCoach
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ChessCoach.xcodeproj \
+            -scheme ChessCoach
+
+      - name: Build unsigned iPhone app
+        working-directory: ChessCoach
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ChessCoach.xcodeproj \
+            -scheme ChessCoach \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=YES \
+            ARCHS=arm64 \
+            build | tee build.log
+
+      - name: Package IPA
+        working-directory: ChessCoach
+        run: |
+          set -euo pipefail
+          test -d build/Build/Products/Release-iphoneos/ChessCoach.app
+          rm -rf Payload ChessCoach.ipa
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/ChessCoach.app Payload/
+          zip -qry ChessCoach.ipa Payload
+          test -s ChessCoach.ipa
+          ls -lh ChessCoach.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChessCoach-IPA
+          path: ChessCoach/ChessCoach.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChessCoach-build-log
+          path: ChessCoach/build.log
+          if-no-files-found: ignore
