@@ -6,6 +6,12 @@ on:
       - chesscoach-ios
     paths:
       - 'ChessCoach/.buildtrigger'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'ChessCoach/**'
+      - '.github/workflows/chesscoach-ios.yml'
   workflow_dispatch:
 
 jobs:
