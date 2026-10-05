@@ -40,15 +40,6 @@ jobs:
             --output ChessCoach/ChessCoach/Resources/nn-134a887f4c8f.nnue
           echo "134a887f4c8ff7bf7284177a3b3fc6ff9cef95ba89eb8db3079a8e507f7126af  ChessCoach/ChessCoach/Resources/nn-134a887f4c8f.nnue" | shasum -a 256 -c -
 
-      - name: Download review coach artwork
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p ChessCoach/ChessCoach/Assets.xcassets/CoachAvatar.imageset
-          curl --proto '=https' --tlsv1.2 --location --fail --show-error \
-            'https://api.dicebear.com/10.x/adventurer/png?seed=NoxChessCoach&size=256&backgroundColor=1f2937&radius=18' \
-            --output ChessCoach/ChessCoach/Assets.xcassets/CoachAvatar.imageset/coach.png
-          file ChessCoach/ChessCoach/Assets.xcassets/CoachAvatar.imageset/coach.png
 
       - name: Generate app icon
         run: |
