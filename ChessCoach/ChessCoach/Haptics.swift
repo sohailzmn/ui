@@ -32,6 +32,10 @@ enum Haptics {
         }
     }
 
+    static func keyMoment(_ grade: ReviewGrade) {
+        reviewStep(grade)
+    }
+
     static func selection() {
         DispatchQueue.main.async {
             let generator = UISelectionFeedbackGenerator()
