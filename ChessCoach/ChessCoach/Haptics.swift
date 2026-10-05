@@ -55,4 +55,11 @@ enum Haptics {
             generator.notificationOccurred(.error)
         }
     }
+    static func move() {
+        DispatchQueue.main.async {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.prepare()
+            generator.impactOccurred(intensity: 0.30)
+        }
+    }
 }
