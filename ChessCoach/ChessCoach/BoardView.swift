@@ -39,10 +39,11 @@ struct ChessBoardViewLite: View {
                                         .fill(squareColor(isLight: isLight, highlighted: highlighted))
 
                                     if let piece = pieces[square] {
-                                        Text(glyph(for: piece))
-                                            .font(.system(size: cell * 0.68, weight: .medium))
-                                            .minimumScaleFactor(0.5)
-                                            .shadow(color: .black.opacity(0.24), radius: 1, y: 1)
+                                        Image(pieceAssetName(for: piece))
+                                            .resizable()
+                                            .scaledToFit()
+                                            .padding(cell * 0.055)
+                                            .shadow(color: .black.opacity(0.24), radius: 1.4, y: 1.2)
                                             .transition(.scale(scale: 0.82).combined(with: .opacity))
                                     }
 
@@ -99,21 +100,21 @@ struct ChessBoardViewLite: View {
         return [String(chars[0...1]), String(chars[2...3])]
     }
 
-    private func glyph(for piece: Character) -> String {
+    private func pieceAssetName(for piece: Character) -> String {
         switch piece {
-        case "K": return "♔"
-        case "Q": return "♕"
-        case "R": return "♖"
-        case "B": return "♗"
-        case "N": return "♘"
-        case "P": return "♙"
-        case "k": return "♚"
-        case "q": return "♛"
-        case "r": return "♜"
-        case "b": return "♝"
-        case "n": return "♞"
-        case "p": return "♟"
-        default: return ""
+        case "K": return "wK"
+        case "Q": return "wQ"
+        case "R": return "wR"
+        case "B": return "wB"
+        case "N": return "wN"
+        case "P": return "wP"
+        case "k": return "bK"
+        case "q": return "bQ"
+        case "r": return "bR"
+        case "b": return "bB"
+        case "n": return "bN"
+        case "p": return "bP"
+        default: return "wP"
         }
     }
 }
