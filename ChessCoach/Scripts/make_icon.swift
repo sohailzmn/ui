@@ -8,26 +8,48 @@ let image = NSImage(size: size)
 image.lockFocus()
 
 let rect = NSRect(origin: .zero, size: size)
-let gradient = NSGradient(colors: [
-    NSColor(calibratedRed: 0.06, green: 0.07, blue: 0.10, alpha: 1),
-    NSColor(calibratedRed: 0.11, green: 0.15, blue: 0.20, alpha: 1),
-    NSColor(calibratedRed: 0.13, green: 0.55, blue: 0.46, alpha: 1)
-])!
-gradient.draw(in: rect, angle: -45)
+NSColor(calibratedRed: 0.035, green: 0.043, blue: 0.060, alpha: 1).setFill()
+rect.fill()
 
-let glow = NSBezierPath(ovalIn: NSRect(x: 610, y: 590, width: 360, height: 360))
-NSColor(calibratedRed: 0.42, green: 1.0, blue: 0.77, alpha: 0.16).setFill()
-glow.fill()
+let glow = NSGradient(colors: [
+    NSColor(calibratedRed: 0.36, green: 0.94, blue: 0.70, alpha: 0.28),
+    NSColor(calibratedRed: 0.36, green: 0.94, blue: 0.70, alpha: 0.0)
+])!
+glow.draw(in: NSBezierPath(ovalIn: NSRect(x: 500, y: 510, width: 640, height: 640)), relativeCenterPosition: .zero)
+
+let boxRect = NSRect(x: 160, y: 160, width: 704, height: 704)
+let box = NSBezierPath(roundedRect: boxRect, xRadius: 120, yRadius: 120)
+NSColor(calibratedRed: 0.075, green: 0.088, blue: 0.115, alpha: 0.98).setFill()
+box.fill()
+NSColor(calibratedRed: 0.36, green: 0.94, blue: 0.70, alpha: 0.96).setStroke()
+box.lineWidth = 28
+box.stroke()
+
+let tileSize: CGFloat = 160
+let tileOrigins = [
+    NSPoint(x: 210, y: 210),
+    NSPoint(x: 654, y: 210),
+    NSPoint(x: 210, y: 654),
+    NSPoint(x: 654, y: 654)
+]
+for origin in tileOrigins {
+    let tile = NSBezierPath(
+        roundedRect: NSRect(x: origin.x, y: origin.y, width: tileSize, height: tileSize),
+        xRadius: 28,
+        yRadius: 28
+    )
+    NSColor.white.withAlphaComponent(0.045).setFill()
+    tile.fill()
+}
 
 let paragraph = NSMutableParagraphStyle()
 paragraph.alignment = .center
 let attributes: [NSAttributedString.Key: Any] = [
-    .font: NSFont.systemFont(ofSize: 590, weight: .black),
+    .font: NSFont.systemFont(ofSize: 515, weight: .black),
     .foregroundColor: NSColor.white,
     .paragraphStyle: paragraph
 ]
-let symbol = "♞" as NSString
-symbol.draw(in: NSRect(x: 80, y: 165, width: 864, height: 680), withAttributes: attributes)
+("♞" as NSString).draw(in: NSRect(x: 205, y: 250, width: 614, height: 575), withAttributes: attributes)
 
 image.unlockFocus()
 guard let tiff = image.tiffRepresentation,
