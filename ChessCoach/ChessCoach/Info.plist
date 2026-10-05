@@ -1,15 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>\n  <key>CFBundleDevelopmentRegion</key>\n  <string>$(DEVELOPMENT_LANGUAGE)</string>\n  <key>CFBundleExecutable</key>\n  <string>$(EXECUTABLE_NAME)</string>\n  <key>CFBundleIdentifier</key>\n  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>\n  <key>CFBundleInfoDictionaryVersion</key>\n  <string>6.0</string>\n  <key>CFBundlePackageType</key>\n  <string>APPL</string>
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>$(DEVELOPMENT_LANGUAGE)</string>
   <key>CFBundleDisplayName</key>
   <string>Chess Coach</string>
+  <key>CFBundleExecutable</key>
+  <string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleIdentifier</key>
+  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
   <key>CFBundleName</key>
   <string>ChessCoach</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
   <key>CFBundleShortVersionString</key>
   <string>1.0.0</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>2</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.education</string>
   <key>UILaunchScreen</key>
   <dict/>
   <key>UISupportedInterfaceOrientations</key>
@@ -22,7 +34,5 @@
     <string>UIInterfaceOrientationLandscapeLeft</string>
     <string>UIInterfaceOrientationLandscapeRight</string>
   </array>
-  <key>LSApplicationCategoryType</key>
-  <string>public.app-category.education</string>
 </dict>
 </plist>
