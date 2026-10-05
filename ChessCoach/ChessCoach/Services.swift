@@ -260,7 +260,7 @@ struct StockfishReviewer {
         try await session.start()
         defer { session.stop() }
 
-        let maxPly = min(game.uciMoves.count, 140)
+        let maxPly = game.uciMoves.count
         let positions = Array(game.fens.prefix(maxPly + 1))
         var analyses: [EngineAnalysis] = []
         analyses.reserveCapacity(positions.count)
@@ -268,7 +268,8 @@ struct StockfishReviewer {
         for (index, fen) in positions.enumerated() {
             let fraction = Double(index) / Double(max(positions.count, 1))
             await progress(fraction * 0.82, "Stockfish prüft Zug \(index + 1) von \(positions.count)")
-            analyses.append(try await session.analyze(fen: fen, moveTimeMilliseconds: 150))
+            let reviewTime = maxPly > 160 ? 85 : (maxPly > 100 ? 105 : 145)
+            analyses.append(try await session.analyze(fen: fen, moveTimeMilliseconds: reviewTime))
         }
 
         var moveReviews: [MoveReview] = []
