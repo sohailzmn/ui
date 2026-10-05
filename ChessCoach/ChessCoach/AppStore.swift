@@ -39,7 +39,7 @@ final class AppStore: ObservableObject {
             for move in review.moves {
                 let whiteMove = move.ply % 2 == 1
                 let myMove = (game.myColor == "white" && whiteMove) || (game.myColor == "black" && !whiteMove)
-                guard myMove, move.grade == .mistake || move.grade == .blunder, !move.bestMove.isEmpty else { continue }
+                guard myMove, move.grade.isTrainingCandidate, !move.bestMove.isEmpty else { continue }
 
                 output.append(
                     TrainingPuzzle(
