@@ -12,3 +12,10 @@ Source: https://github.com/Trickfest/SwiftChessTools
 
 Chess.com
 Chess.com is not affiliated with or endorsing this app. The app uses Chess.com's public read-only PubAPI to load publicly available player and game data. No Chess.com proprietary board artwork, sounds, or move-classification glyphs are included.
+
+
+Chessnut Pieces
+Copyright 2015 Alexis Luengas.
+License: Apache License 2.0.
+Source: https://github.com/LexLuengas/chessnut-pieces
+A copy of the Apache License 2.0 is bundled as ChessnutPieces-License.txt.
