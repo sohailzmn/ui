@@ -74,7 +74,7 @@ final class AppStore: ObservableObject {
         do {
             let (snapshot, fetchedGames) = try await service.loadPlayer(username: newUsername)
             let existingReviews = Dictionary(uniqueKeysWithValues: games.compactMap { game -> (String, GameReview)? in
-                guard let review = game.review else { return nil }
+                guard let review = game.review, review.isModernReview else { return nil }
                 return (game.id, review)
             })
 
@@ -160,7 +160,13 @@ final class AppStore: ObservableObject {
             return
         }
         profile = payload.profile
-        games = payload.games
+        games = payload.games.map { game in
+            var copy = game
+            if let review = copy.review, !review.isModernReview {
+                copy.review = nil
+            }
+            return copy
+        }
     }
 }
 
