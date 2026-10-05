@@ -45,7 +45,7 @@ struct ChessBoardViewLite: View {
                                         Image(pieceAssetName(for: piece))
                                             .resizable()
                                             .scaledToFit()
-                                            .padding(cell * 0.055)
+                                            .padding(cell * 0.018)
                                             .shadow(color: .black.opacity(0.24), radius: 1.4, y: 1.2)
                                             .transition(.scale(scale: 0.82).combined(with: .opacity))
                                     }
