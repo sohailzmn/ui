@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct ChessCoachApp: App {
@@ -196,5 +197,45 @@ extension View {
                             .stroke(Color.white.opacity(0.065), lineWidth: 1)
                     )
             )
+    }
+}
+
+
+enum Haptics {
+    static func move() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.prepare()
+        generator.impactOccurred(intensity: 0.55)
+    }
+
+    static func keyMoment(_ grade: ReviewGrade) {
+        switch grade {
+        case .brilliant, .great:
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            generator.notificationOccurred(.success)
+        case .mistake, .miss:
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.prepare()
+            generator.impactOccurred(intensity: 0.78)
+        case .blunder:
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            generator.notificationOccurred(.warning)
+        default:
+            move()
+        }
+    }
+
+    static func success() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.success)
+    }
+
+    static func error() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.error)
     }
 }
