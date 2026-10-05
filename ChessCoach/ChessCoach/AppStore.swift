@@ -126,6 +126,7 @@ final class AppStore: ObservableObject {
                 games[index].review = result
             }
             saveCache()
+            Haptics.success()
         } catch {
             errorMessage = error.localizedDescription
         }
