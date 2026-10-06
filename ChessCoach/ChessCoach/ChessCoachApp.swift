@@ -34,14 +34,14 @@ struct RootView: View {
 }
 
 extension Color {
-    static let coachBackground = Color(red: 0.035, green: 0.043, blue: 0.060)
-    static let coachPanel = Color(red: 0.075, green: 0.088, blue: 0.115)
-    static let coachPanel2 = Color(red: 0.105, green: 0.122, blue: 0.155)
-    static let coachMint = Color(red: 0.36, green: 0.94, blue: 0.70)
-    static let coachCyan = Color(red: 0.32, green: 0.73, blue: 0.98)
-    static let coachPurple = Color(red: 0.66, green: 0.51, blue: 1.0)
-    static let coachOrange = Color(red: 1.0, green: 0.68, blue: 0.30)
-    static let coachRed = Color(red: 1.0, green: 0.36, blue: 0.42)
+    static let coachBackground = Color(red: 0.058, green: 0.060, blue: 0.066)
+    static let coachPanel = Color(red: 0.100, green: 0.103, blue: 0.112)
+    static let coachPanel2 = Color(red: 0.130, green: 0.133, blue: 0.142)
+    static let coachMint = Color(red: 1.0, green: 0.72, blue: 0.11)
+    static let coachCyan = Color(red: 0.30, green: 0.80, blue: 0.74)
+    static let coachPurple = Color(red: 0.56, green: 0.52, blue: 0.72)
+    static let coachOrange = Color(red: 1.0, green: 0.60, blue: 0.18)
+    static let coachRed = Color(red: 0.96, green: 0.30, blue: 0.33)
 }
 
 extension ReviewGrade {
@@ -102,14 +102,10 @@ struct PrimaryButtonLabel: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
             .background(
-                LinearGradient(
-                    colors: [Color.coachMint, Color(red: 0.56, green: 1.0, blue: 0.82)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ),
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                Color.coachMint,
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
             )
-            .shadow(color: Color.coachMint.opacity(0.2), radius: 20, y: 8)
+            .shadow(color: Color.black.opacity(0.22), radius: 8, y: 4)
     }
 }
 
@@ -117,17 +113,10 @@ struct ScreenBackground: View {
     var body: some View {
         ZStack {
             Color.coachBackground
-            RadialGradient(
-                colors: [Color.coachPurple.opacity(0.12), .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 470
-            )
-            RadialGradient(
-                colors: [Color.coachMint.opacity(0.09), .clear],
-                center: .bottomLeading,
-                startRadius: 0,
-                endRadius: 420
+            LinearGradient(
+                colors: [Color.black.opacity(0.10), Color.coachBackground],
+                startPoint: .top,
+                endPoint: .bottom
             )
         }
         .ignoresSafeArea()
@@ -180,10 +169,10 @@ extension View {
     func coachPanel() -> some View {
         self
             .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.coachPanel.opacity(0.92))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .stroke(Color.white.opacity(0.065), lineWidth: 1)
                     )
             )
