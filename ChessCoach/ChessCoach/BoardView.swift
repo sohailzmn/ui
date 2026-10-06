@@ -21,6 +21,8 @@ struct ChessBoardViewLite: View {
                     ForEach(0..<64, id: \.self) { index in
                         let square = squareName(at: index)
                         let piece = pieces[square]
+                        let displayRow = index / 8
+                        let displayCol = index % 8
                         BoardSquareCell(
                             square: square,
                             piece: piece,
@@ -28,7 +30,9 @@ struct ChessBoardViewLite: View {
                             isLight: isLightSquare(square),
                             isHighlighted: moveSquares.contains(square),
                             isSelected: selectedSquare == square,
-                            assetName: piece.map(pieceAssetName)
+                            assetName: piece.map(pieceAssetName),
+                            showRank: displayCol == 0,
+                            showFile: displayRow == 7
                         ) {
                             guard onSquareTap != nil else { return }
                             Haptics.move()
@@ -46,10 +50,10 @@ struct ChessBoardViewLite: View {
                 }
             }
             .frame(width: side, height: side)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .stroke(Color.black.opacity(0.28), lineWidth: 1)
             )
             .animation(.spring(response: 0.38, dampingFraction: 0.84), value: fen)
         }
@@ -107,6 +111,8 @@ private struct BoardSquareCell: View {
     let isHighlighted: Bool
     let isSelected: Bool
     let assetName: String?
+    let showRank: Bool
+    let showFile: Bool
     let onTap: () -> Void
 
     var body: some View {
@@ -117,8 +123,31 @@ private struct BoardSquareCell: View {
                 Image(assetName)
                     .resizable()
                     .scaledToFit()
-                    .padding(size * 0.018)
-                    .shadow(color: .black.opacity(0.24), radius: 1.4, y: 1.2)
+                    .padding(size * 0.026)
+                    .shadow(color: .black.opacity(0.18), radius: 1.1, y: 0.8)
+            }
+
+            if showRank || showFile {
+                VStack {
+                    if showRank {
+                        HStack {
+                            Text(String(square.last ?? " "))
+                                .font(.system(size: max(7, size * 0.15), weight: .bold))
+                                .foregroundStyle(labelColor.opacity(0.68))
+                            Spacer()
+                        }
+                    }
+                    Spacer()
+                    if showFile {
+                        HStack {
+                            Spacer()
+                            Text(String(square.first ?? " "))
+                                .font(.system(size: max(7, size * 0.15), weight: .bold))
+                                .foregroundStyle(labelColor.opacity(0.68))
+                        }
+                    }
+                }
+                .padding(size * 0.055)
             }
         }
         .frame(width: size, height: size)
@@ -128,14 +157,18 @@ private struct BoardSquareCell: View {
 
     private var backgroundColor: Color {
         if isSelected {
-            return Color.coachCyan.opacity(isLight ? 0.82 : 0.68)
+            return Color.reviewGold.opacity(isLight ? 0.78 : 0.62)
         }
         if isHighlighted {
-            return Color.coachMint.opacity(isLight ? 0.70 : 0.56)
+            return Color(red: 0.56, green: 0.64, blue: 0.42)
         }
         return isLight
-            ? Color(red: 0.78, green: 0.80, blue: 0.75)
-            : Color(red: 0.26, green: 0.34, blue: 0.31)
+            ? Color(red: 0.84, green: 0.85, blue: 0.89)
+            : Color(red: 0.27, green: 0.31, blue: 0.39)
+    }
+
+    private var labelColor: Color {
+        isLight ? Color(red: 0.27, green: 0.31, blue: 0.39) : Color(red: 0.84, green: 0.85, blue: 0.89)
     }
 }
 
@@ -186,13 +219,13 @@ private struct BoardArrowOverlay: View {
                 }
                 .trim(from: 0, to: revealed ? 1 : 0)
                 .stroke(
-                    Color.coachMint.opacity(0.88),
+                    Color.coachCyan.opacity(0.92),
                     style: StrokeStyle(lineWidth: max(5, cell * 0.11), lineCap: .round)
                 )
                 .shadow(color: .black.opacity(0.35), radius: 3)
 
                 Circle()
-                    .fill(Color.coachMint)
+                    .fill(Color.coachCyan)
                     .frame(width: cell * 0.22, height: cell * 0.22)
                     .position(end)
                     .scaleEffect(revealed ? 1 : 0.1)
