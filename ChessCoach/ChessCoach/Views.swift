@@ -338,6 +338,7 @@ struct ConnectView: View {
             username = store.username
         }
         .coachErrorAlert(store: store)
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 
@@ -505,31 +506,7 @@ struct GameDetailView: View {
 
             if let game {
                 if let review = game.review {
-                    switch mode {
-                    case .report:
-                        ReviewReportView(
-                            game: game,
-                            review: review,
-                            onStartReview: {
-                                reviewIndex = firstInterestingIndex(game: game, review: review)
-                                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                                    mode = .coach
-                                }
-                                Haptics.keyMoment(review.moves[reviewIndex].grade)
-                            }
-                        )
-                    case .coach:
-                        CoachReviewView(
-                            game: game,
-                            review: review,
-                            selectedIndex: $reviewIndex,
-                            onShowReport: {
-                                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                                    mode = .report
-                                }
-                            }
-                        )
-                    }
+                    PremiumReviewShellView(game: game, review: review)
                 } else {
                     preReviewView(game)
                 }
