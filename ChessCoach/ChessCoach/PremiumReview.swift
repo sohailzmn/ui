@@ -194,7 +194,7 @@ struct PremiumReportView: View {
                 PremiumCoachBubble(
                     grade: nil,
                     headline: reportHeadline,
-                    body: review.lesson,
+                    message: review.lesson,
                     compact: false
                 )
 
@@ -424,7 +424,7 @@ struct PremiumAnalysisView: View {
                 PremiumCoachBubble(
                     grade: move.grade,
                     headline: move.simpleTitle,
-                    body: simplifiedExplanation(move),
+                    message: simplifiedExplanation(move),
                     compact: true
                 )
 
@@ -556,7 +556,7 @@ struct PremiumAnalysisView: View {
 struct PremiumCoachBubble: View {
     let grade: ReviewGrade?
     let headline: String
-    let body: String
+    let message: String
     let compact: Bool
 
     var body: some View {
@@ -588,7 +588,7 @@ struct PremiumCoachBubble: View {
                     .foregroundStyle(.black)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(body)
+                Text(message)
                     .font(.subheadline)
                     .foregroundStyle(Color.black.opacity(0.72))
                     .lineSpacing(2)
@@ -698,7 +698,7 @@ struct PremiumInsightsView: View {
                 PremiumCoachBubble(
                     grade: nil,
                     headline: "Das solltest du aus der Partie mitnehmen.",
-                    body: review.lesson,
+                    message: review.lesson,
                     compact: false
                 )
 
