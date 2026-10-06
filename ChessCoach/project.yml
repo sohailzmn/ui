@@ -1,0 +1,37 @@
+name: ChessCoach
+options:
+  bundleIdPrefix: com.sohail
+  deploymentTarget:
+    iOS: "26.0"
+packages:
+  SwiftChessTools:
+    url: https://github.com/Trickfest/SwiftChessTools.git
+    from: 1.2.1
+  StockfishEmbedded:
+    url: https://github.com/Trickfest/StockfishEmbedded.git
+    from: 1.12.0
+targets:
+  ChessCoach:
+    type: application
+    platform: iOS
+    sources:
+      - path: ChessCoach
+    dependencies:
+      - package: SwiftChessTools
+        product: ChessCore
+      - package: StockfishEmbedded
+        product: SFEngine
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sohail.chesscoach
+        PRODUCT_NAME: ChessCoach
+        MARKETING_VERSION: 1.0.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: 5.0
+        IPHONEOS_DEPLOYMENT_TARGET: 26.0
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: ChessCoach/Info.plist
+        CODE_SIGN_STYLE: Automatic
+    scheme:
+      testTargets: []
