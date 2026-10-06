@@ -15,6 +15,8 @@ enum PremiumReviewTab: String, CaseIterable {
 }
 
 struct PremiumReviewShellView: View {
+    @Environment(\.dismiss) private var dismiss
+
     let game: ImportedGame
     let review: GameReview
 
@@ -27,7 +29,23 @@ struct PremiumReviewShellView: View {
             Color.reviewBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                PremiumPlayerBar(game: game)
+                HStack(spacing: 8) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.reviewPanelRaised, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+
+                    PremiumPlayerBar(game: game)
+                }
+                .padding(.horizontal, 10)
+                .padding(.top, 4)
+                .padding(.bottom, 4)
 
                 Group {
                     switch selectedTab {
@@ -58,10 +76,7 @@ struct PremiumReviewShellView: View {
             }
         }
         .toolbar(.hidden, for: .tabBar)
-        .navigationBarBackButtonHidden(false)
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.reviewBackground.opacity(0.98), for: .navigationBar)
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     private var firstImportantMove: Int {
@@ -104,8 +119,6 @@ struct PremiumPlayerBar: View {
                 piece: "B"
             )
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
         .background(Color.reviewBackground)
     }
 
