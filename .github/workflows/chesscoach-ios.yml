@@ -40,7 +40,6 @@ jobs:
             --output ChessCoach/ChessCoach/Resources/nn-134a887f4c8f.nnue
           echo "134a887f4c8ff7bf7284177a3b3fc6ff9cef95ba89eb8db3079a8e507f7126af  ChessCoach/ChessCoach/Resources/nn-134a887f4c8f.nnue" | shasum -a 256 -c -
 
-
       - name: Generate app icon
         run: |
           swift ChessCoach/Scripts/make_icon.swift \
@@ -74,6 +73,25 @@ jobs:
             ARCHS=arm64 \
             build | tee build.log
 
+      - name: Prepare re-signable app for eSign
+        working-directory: ChessCoach
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="build/Build/Products/Release-iphoneos/ChessCoach.app"
+          test -d "$APP"
+
+          # eSign and similar tools are re-signers. Give the unsigned Mach-O
+          # a standards-compliant ad-hoc signature first so LC_CODE_SIGNATURE
+          # and CodeResources exist. eSign can replace this signature later.
+          find "$APP" -name "_CodeSignature" -type d -prune -exec rm -rf {} +
+          /usr/bin/codesign --force --deep --sign - --timestamp=none "$APP"
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP"
+          /usr/bin/codesign -d --verbose=4 "$APP" 2>&1 | tee codesign.log
+
+          test -f "$APP/_CodeSignature/CodeResources"
+          /usr/bin/otool -l "$APP/ChessCoach" | grep -A4 LC_CODE_SIGNATURE
+
       - name: Package IPA
         working-directory: ChessCoach
         run: |
@@ -82,8 +100,9 @@ jobs:
           rm -rf Payload ChessCoach.ipa
           mkdir Payload
           cp -R build/Build/Products/Release-iphoneos/ChessCoach.app Payload/
-          zip -qry ChessCoach.ipa Payload
+          /usr/bin/zip -qry ChessCoach.ipa Payload
           test -s ChessCoach.ipa
+          /usr/bin/unzip -t ChessCoach.ipa
           ls -lh ChessCoach.ipa
 
       - name: Upload IPA
@@ -94,10 +113,12 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload build log on failure
+      - name: Upload diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ChessCoach-build-log
-          path: ChessCoach/build.log
+          name: ChessCoach-build-diagnostics
+          path: |
+            ChessCoach/build.log
+            ChessCoach/codesign.log
           if-no-files-found: ignore
