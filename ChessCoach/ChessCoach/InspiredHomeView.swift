@@ -139,7 +139,7 @@ struct InspiredHomeView: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.white.opacity(0.10))
                     Capsule().fill(Color.coachMint)
-                        .frame(width: g.size.width * (store.puzzles.isEmpty ? 0 : Double(journal.completed) / Double(store.puzzles.count)).clamped(to: 0...1))
+                        .frame(width: g.size.width * CGFloat((store.puzzles.isEmpty ? 0.0 : Double(journal.completed) / Double(store.puzzles.count)).clamped(to: 0...1)))
                 }
             }
             .frame(height: 7)
