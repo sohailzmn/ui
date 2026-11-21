@@ -75,7 +75,7 @@ struct ChessBoardViewLite: View {
               let fileASCII = chars[0].asciiValue,
               let rank = chars[1].wholeNumberValue else { return false }
         let file = Int(fileASCII) - 97
-        return (file + rank) % 2 == 1
+        return (file + rank) % 2 == 0
     }
 
     private func squares(from move: String?) -> Set<String> {
