@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" role="img" aria-label="White bishop">
+<defs><linearGradient id="fill" x1="0" x2="1" y1="0" y2=".16"><stop offset="0" stop-color="#f5f1e9"/><stop offset=".53" stop-color="#e3ded4"/><stop offset="1" stop-color="#bdb9b4"/></linearGradient></defs>
+<style>.face{fill:url(#fill);stroke:#868581;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}.line{fill:none;stroke:#b1aea9;stroke-width:2.6;stroke-linecap:round}.eye{fill:#4d5055}</style>
+<circle cx="50" cy="15" r="5" class="face"/><path d="M50 19C34 27 26 44 31 56Q39 66 50 66Q61 66 69 56C74 44 66 27 50 19z" class="face"/><path d="M59 27L41 53" class="line"/><path d="M38 64H62L69 84Q71 89 76 92H24Q29 89 31 84z" class="face"/><path d="M32 68H68" class="line"/><path d="M23 91H77Q80 91 80 96V100Q80 103 76 103H24Q20 103 20 100V96Q20 91 23 91z" class="face"/><path d="M26 102H74Q79 102 79 108H21Q21 102 26 102z" class="face"/>
+<path d="M29 96Q50 94 70 96" fill="none" stroke="#f5f1e9" stroke-opacity=".28" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
