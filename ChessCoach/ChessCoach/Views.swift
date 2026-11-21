@@ -541,7 +541,7 @@ struct GameDetailView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(spacing: 12) {
-                            Image("Coach")
+                            Image("AcademyHome")
                                 .resizable()
                                 .scaledToFill()
                                 .frame(width: 58, height: 58)
@@ -684,7 +684,7 @@ struct ReviewReportView: View {
                         .foregroundStyle(.white.opacity(0.48))
                 }
                 Spacer()
-                Image("Coach")
+                Image("AcademyHome")
                     .resizable()
                     .scaledToFill()
                     .frame(width: 76, height: 76)
@@ -783,7 +783,7 @@ struct ReviewReportView: View {
 
     private var coachSummary: some View {
         HStack(alignment: .top, spacing: 13) {
-            Image("Coach")
+            Image("AcademyHome")
                 .resizable()
                 .scaledToFill()
                 .frame(width: 52, height: 52)
@@ -1052,7 +1052,7 @@ struct CoachMessageCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image("Coach")
+            Image("AcademyHome")
                 .resizable()
                 .scaledToFill()
                 .frame(width: 62, height: 62)
@@ -1241,7 +1241,7 @@ struct LearnView: View {
 
     private var trainingHero: some View {
         HStack(spacing: 14) {
-            Image("Coach")
+            Image("AcademyHome")
                 .resizable()
                 .scaledToFill()
                 .frame(width: 72, height: 72)
@@ -1399,7 +1399,7 @@ struct MistakeTrainingView: View {
 
     private func trainingCoach(_ puzzle: TrainingPuzzle) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image("Coach")
+            Image("AcademyHome")
                 .resizable()
                 .scaledToFill()
                 .frame(width: 58, height: 58)

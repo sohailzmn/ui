@@ -256,11 +256,12 @@ struct TrainingHubView: View {
         } label: {
             VStack(alignment: .leading, spacing: 13) {
                 HStack {
-                    Image(systemName: icon)
-                        .font(.system(size: 35, weight: .bold))
-                        .foregroundStyle(tint)
-                        .frame(width: 68, height: 64)
-                        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 17))
+                    Image(title == "Woodpecker" ? "AcademyWoodpecker" :
+                          title == "Blunder Training" ? "AcademyBlunder" : "AcademyPuzzle")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 68, height: 68)
+                        .accessibilityHidden(true)
                     Spacer()
                     Text("FREI")
                         .font(.caption2.bold())

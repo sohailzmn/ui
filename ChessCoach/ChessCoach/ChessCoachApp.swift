@@ -144,7 +144,7 @@ struct AnimatedKnightHero: View {
                 .frame(width: 238, height: 238)
                 .scaleEffect(glowing ? 1.07 : 0.92)
 
-            Image("Coach")
+            Image("AcademyHome")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 170, height: 170)
