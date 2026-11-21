@@ -327,6 +327,13 @@ struct GuidedBlunderSession: View {
                                 Text(woodpecker ? "WOODPECKER" : "BLUNDER TRAINING")
                                     .font(.caption.bold()).foregroundStyle(Color.coachMint)
                                 Spacer()
+                                if woodpecker {
+                                    TimelineView(.periodic(from: startedAt, by: 1)) { clock in
+                                        Text(timeLabel(clock.date))
+                                            .font(.caption.monospacedDigit())
+                                            .foregroundStyle(.white.opacity(0.64))
+                                    }
+                                }
                                 Text("\(index + 1)/\(puzzles.count)")
                                     .font(.caption.monospacedDigit()).foregroundStyle(.white.opacity(0.68))
                             }
@@ -414,8 +421,23 @@ struct GuidedBlunderSession: View {
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.65))
                         .multilineTextAlignment(.center)
-                    Button("Fertig") { dismiss() }
+                    if woodpecker {
+                        Button("Nächsten Zyklus starten") {
+                            index = 0
+                            completed = 0
+                            firstTryCorrect = 0
+                            startedAt = Date()
+                            selected = nil
+                            didMistake = false
+                            finishedPosition = false
+                            revealed = false
+                            message = "Suche zuerst Schachs, Schlagzüge und direkte Drohungen."
+                        }
                         .buttonStyle(.borderedProminent)
+                        .tint(Color.coachMint)
+                    }
+                    Button("Fertig") { dismiss() }
+                        .buttonStyle(.bordered)
                         .tint(Color.coachMint)
                 }
                 .padding(28)
@@ -424,6 +446,11 @@ struct GuidedBlunderSession: View {
         .navigationTitle(woodpecker ? "Woodpecker" : "Blunder Training")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.coachBackground, for: .navigationBar)
+    }
+
+    private func timeLabel(_ now: Date) -> String {
+        let seconds = max(0, Int(now.timeIntervalSince(startedAt)))
+        return String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }
 
     private func tapped(_ square: String, puzzle: TrainingPuzzle) {
