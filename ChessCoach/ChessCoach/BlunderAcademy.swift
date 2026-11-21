@@ -496,7 +496,8 @@ struct CoachInsightsView: View {
                         .padding(18)
                         .background(Color.coachPanel, in: RoundedRectangle(cornerRadius: 18))
                         Text("Deine Muster").font(.headline)
-                        ForEach(mostCommon, id: \.0) { row in
+                        ForEach(Array(mostCommon.enumerated()), id: \.offset) { entry in
+                            let row = entry.element
                             HStack {
                                 Image(systemName: row.0.symbol)
                                     .foregroundStyle(row.0.tint).frame(width: 25)
