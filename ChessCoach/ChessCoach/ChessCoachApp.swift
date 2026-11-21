@@ -18,16 +18,19 @@ struct RootView: View {
     var body: some View {
         TabView {
             HomeView()
-                .tabItem { Label("Coach", systemImage: "sparkles") }
+                .tabItem { Label("Home", systemImage: "house.fill") }
+
+            TrainingHubView()
+                .tabItem { Label("Train", systemImage: "scope") }
+
+            CoachInsightsView()
+                .tabItem { Label("Coach", systemImage: "person.crop.circle.fill") }
 
             GamesView()
-                .tabItem { Label("Partien", systemImage: "square.grid.2x2.fill") }
+                .tabItem { Label("Games", systemImage: "square.grid.2x2.fill") }
 
             LearnView()
-                .tabItem { Label("Lernen", systemImage: "brain.head.profile.fill") }
-
-            SettingsView()
-                .tabItem { Label("Setup", systemImage: "slider.horizontal.3") }
+                .tabItem { Label("Brain", systemImage: "brain.head.profile.fill") }
         }
         .tint(Color.coachMint)
     }
