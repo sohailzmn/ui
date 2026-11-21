@@ -17,7 +17,7 @@ struct ChessCoachApp: App {
 struct RootView: View {
     var body: some View {
         TabView {
-            HomeView()
+            InspiredHomeView()
                 .tabItem { Label("Home", systemImage: "house.fill") }
 
             TrainingHubView()
